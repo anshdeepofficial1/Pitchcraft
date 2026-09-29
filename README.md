@@ -51,7 +51,7 @@ Pitchcraft helps turn a guided project brief into a structured, client-ready web
 ## ⚡ Local Setup
 
 ```bash
-git clone https://github.com/anshdeepofficial/Pitchcraft.git
+git clone https://github.com/anshdeepofficial1/Pitchcraft.git
 cd Pitchcraft
 bun install
 cp .env.example .env
@@ -75,5 +75,5 @@ Keep changes focused on proposal quality, UX, reliability, secure sharing, and m
 ---
 
 <div align="center">
-Built by <a href="https://github.com/anshdeepofficial">Anshdeep Singh</a> · Aniweb Designs
+Built by <a href="https://github.com/anshdeepofficial1">Anshdeep Singh</a> · Aniweb Designs
 </div>
