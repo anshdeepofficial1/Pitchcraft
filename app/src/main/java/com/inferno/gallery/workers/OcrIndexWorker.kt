@@ -21,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -193,8 +194,19 @@ class OcrIndexWorker(
                 "recent_uris" to emptyArray<String>()
             ))
 
-            val loadChannel  = Channel<LoadedImage>(LOAD_CHANNEL_CAPACITY)
-            val embedChannel = Channel<EmbeddedImage>(EMBED_CHANNEL_CAPACITY)
+            val performance = com.inferno.gallery.data.SettingsRepository
+                .getInstance(applicationContext)
+                .processingPerformanceFlow
+                .first()
+            val cores = Runtime.getRuntime().availableProcessors().coerceAtLeast(2)
+            val recognizerCount = when (performance) {
+                com.inferno.gallery.data.ProcessingPerformance.BALANCED -> 1
+                com.inferno.gallery.data.ProcessingPerformance.FAST -> minOf(2, cores)
+                com.inferno.gallery.data.ProcessingPerformance.MAX -> minOf(4, maxOf(2, cores / 2))
+            }
+            val channelCapacity = maxOf(2, recognizerCount * 2)
+            val loadChannel  = Channel<LoadedImage>(channelCapacity)
+            val embedChannel = Channel<EmbeddedImage>(channelCapacity)
 
             coroutineScope {
                 launch(Dispatchers.IO) {
@@ -225,41 +237,50 @@ class OcrIndexWorker(
                     loadChannel.close()
                 }
 
-                launch(Dispatchers.Default) {
-                    val textRecognizer = com.google.mlkit.vision.text.TextRecognition.getClient(
-                        com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS
-                    )
-
-                    for (loaded in loadChannel) {
-                        if (isStopped) {
-                            loaded.bitmap.recycle()
-                            break
-                        }
+                val inferenceJobs = List(recognizerCount) {
+                    launch(Dispatchers.Default) {
+                        val textRecognizer = com.google.mlkit.vision.text.TextRecognition.getClient(
+                            com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS
+                        )
                         try {
-                            val inputImage = com.google.mlkit.vision.common.InputImage.fromBitmap(
-                                loaded.bitmap,
-                                0
-                            )
-                            val extractedText = suspendCancellableCoroutine { cont ->
-                                textRecognizer.process(inputImage)
-                                    .addOnSuccessListener { visionText ->
-                                        cont.resumeWith(kotlin.Result.success(visionText.text))
+                            for (loaded in loadChannel) {
+                                if (isStopped) {
+                                    loaded.bitmap.recycle()
+                                    break
+                                }
+                                try {
+                                    val inputImage = com.google.mlkit.vision.common.InputImage.fromBitmap(
+                                        loaded.bitmap,
+                                        0
+                                    )
+                                    val extractedText = suspendCancellableCoroutine { cont ->
+                                        textRecognizer.process(inputImage)
+                                            .addOnSuccessListener { visionText ->
+                                                cont.resumeWith(kotlin.Result.success(visionText.text))
+                                            }
+                                            .addOnFailureListener {
+                                                cont.resumeWith(kotlin.Result.success(null))
+                                            }
                                     }
-                                    .addOnFailureListener {
-                                        cont.resumeWith(kotlin.Result.success(null))
-                                    }
+
+                                    embedChannel.send(EmbeddedImage(loaded.entity, extractedText))
+
+                                } catch (e: kotlinx.coroutines.CancellationException) {
+                                    throw e
+                                } catch (e: Throwable) {
+                                    Log.e(TAG, "Stage2 inference failed for ${loaded.entity.name}: ${e.message}")
+                                } finally {
+                                    loaded.bitmap.recycle()
+                                }
                             }
-
-                            embedChannel.send(EmbeddedImage(loaded.entity, extractedText))
-
-                        } catch (e: kotlinx.coroutines.CancellationException) {
-                            throw e
-                        } catch (e: Throwable) {
-                            Log.e(TAG, "Stage2 inference failed for ${loaded.entity.name}: ${e.message}")
                         } finally {
-                            loaded.bitmap.recycle()
+                            textRecognizer.close()
                         }
                     }
+                }
+
+                launch {
+                    inferenceJobs.joinAll()
                     embedChannel.close()
                 }
 
@@ -297,7 +318,9 @@ class OcrIndexWorker(
                             isIndexing = true,
                             progress = current,
                             total = totalImageCount,
-                            currentImageName = embedded.entity.name
+                            currentImageName = embedded.entity.name,
+                            recentUris = recentUris.toList(),
+                            stage = "Text recognition"
                         )
                         setProgress(workDataOf(
                             "progress" to current,
