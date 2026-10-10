@@ -31,86 +31,107 @@ class GalleryApplication : Application(), SingletonImageLoader.Factory, androidx
     override fun onCreate() {
         super.onCreate()
 
-        // CrashActivity runs in a dedicated :crash process. Do not initialize
-        // WorkManager, databases or background jobs there or a startup crash can
-        // recursively crash the crash-report process itself.
-        if (android.app.Application.getProcessName() != packageName) {
-            return
-        }
+        // CrashActivity runs in a dedicated :crash process. Keep that process tiny.
+        if (android.app.Application.getProcessName() != packageName) return
 
-        // Install global crash handler only in the main app process.
+        // IMPORTANT: Do not open Room or enqueue WorkManager jobs here.
+        // The launcher must be able to draw a diagnostic UI before any heavy
+        // component is initialized. Background work starts only after MainActivity
+        // finishes its startup self-check.
         com.inferno.gallery.crash.CrashHandler.install(this)
-        // Chain: MediaStore sync → OCR indexing (OCR must wait for sync to populate the DB)
-        val syncWorkRequest = OneTimeWorkRequestBuilder<MediaSyncWorker>()
-            .setBackoffCriteria(
-                androidx.work.BackoffPolicy.EXPONENTIAL,
-                30, java.util.concurrent.TimeUnit.SECONDS
-            )
-            .build()
+    }
 
-        val settingsRepo = SettingsRepository.getInstance(this)
+    @Volatile
+    private var backgroundWorkScheduled = false
+
+    @Synchronized
+    fun scheduleBackgroundWork() {
+        if (backgroundWorkScheduled) return
+        backgroundWorkScheduled = true
+
         val startupExceptionHandler = kotlinx.coroutines.CoroutineExceptionHandler { _, throwable ->
-            android.util.Log.e("GalleryApplication", "Non-fatal startup scheduling error", throwable)
+            android.util.Log.e("GalleryApplication", "Background scheduling error", throwable)
+            backgroundWorkScheduled = false
         }
-        kotlinx.coroutines.MainScope().launch(startupExceptionHandler) {
-            val ocrEnabled = settingsRepo.ocrIndexingEnabledFlow.first()
 
+        kotlinx.coroutines.MainScope().launch(startupExceptionHandler) {
+            val settingsRepo = SettingsRepository.getInstance(this@GalleryApplication)
+            val syncWorkRequest = OneTimeWorkRequestBuilder<MediaSyncWorker>()
+                .setBackoffCriteria(
+                    androidx.work.BackoffPolicy.EXPONENTIAL,
+                    30,
+                    java.util.concurrent.TimeUnit.SECONDS
+                )
+                .build()
+
+            val ocrEnabled = settingsRepo.ocrIndexingEnabledFlow.first()
             if (ocrEnabled) {
                 val ocrIndexRequest = androidx.work.OneTimeWorkRequestBuilder<OcrIndexWorker>()
                     .setExpedited(androidx.work.OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                     .build()
-                // Chain: sync first, then OCR — prevents OCR from seeing an empty DB
                 WorkManager.getInstance(this@GalleryApplication)
-                    .beginUniqueWork("MediaSyncWorker", androidx.work.ExistingWorkPolicy.KEEP, syncWorkRequest)
+                    .beginUniqueWork(
+                        "MediaSyncWorker",
+                        androidx.work.ExistingWorkPolicy.KEEP,
+                        syncWorkRequest
+                    )
                     .then(ocrIndexRequest)
                     .enqueue()
             } else {
-                // No OCR needed, just run sync alone
                 WorkManager.getInstance(this@GalleryApplication)
-                    .enqueueUniqueWork("MediaSyncWorker", androidx.work.ExistingWorkPolicy.KEEP, syncWorkRequest)
+                    .enqueueUniqueWork(
+                        "MediaSyncWorker",
+                        androidx.work.ExistingWorkPolicy.KEEP,
+                        syncWorkRequest
+                    )
             }
 
-            // Periodic sync every 6 hours
-            val syncPeriodicRequest = androidx.work.PeriodicWorkRequestBuilder<MediaSyncWorker>(
-                6, java.util.concurrent.TimeUnit.HOURS
-            ).build()
-            WorkManager.getInstance(this@GalleryApplication).enqueueUniquePeriodicWork(
-                "MediaSyncWorkerPeriodic",
-                androidx.work.ExistingPeriodicWorkPolicy.KEEP,
-                syncPeriodicRequest
-            )
-            
-
-            // Geocode photos to populate Places clusters
-            val geocodeRequest = androidx.work.OneTimeWorkRequestBuilder<ReverseGeocodeWorker>().build()
+            val syncPeriodicRequest =
+                androidx.work.PeriodicWorkRequestBuilder<MediaSyncWorker>(
+                    6,
+                    java.util.concurrent.TimeUnit.HOURS
+                ).build()
             WorkManager.getInstance(this@GalleryApplication)
-                .enqueueUniqueWork("ReverseGeocodeWorker", androidx.work.ExistingWorkPolicy.KEEP, geocodeRequest)
-            
-            val geocodePeriodicRequest = androidx.work.PeriodicWorkRequestBuilder<ReverseGeocodeWorker>(
-                24, java.util.concurrent.TimeUnit.HOURS
-            ).build()
-            WorkManager.getInstance(this@GalleryApplication).enqueueUniquePeriodicWork(
-                "ReverseGeocodeWorkerPeriodic",
-                androidx.work.ExistingPeriodicWorkPolicy.KEEP,
-                geocodePeriodicRequest
-            )
+                .enqueueUniquePeriodicWork(
+                    "MediaSyncWorkerPeriodic",
+                    androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+                    syncPeriodicRequest
+                )
+
+            val geocodeRequest =
+                androidx.work.OneTimeWorkRequestBuilder<ReverseGeocodeWorker>().build()
+            WorkManager.getInstance(this@GalleryApplication)
+                .enqueueUniqueWork(
+                    "ReverseGeocodeWorker",
+                    androidx.work.ExistingWorkPolicy.KEEP,
+                    geocodeRequest
+                )
+
+            val geocodePeriodicRequest =
+                androidx.work.PeriodicWorkRequestBuilder<ReverseGeocodeWorker>(
+                    24,
+                    java.util.concurrent.TimeUnit.HOURS
+                ).build()
+            WorkManager.getInstance(this@GalleryApplication)
+                .enqueueUniquePeriodicWork(
+                    "ReverseGeocodeWorkerPeriodic",
+                    androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+                    geocodePeriodicRequest
+                )
 
             val autoCleanEnabled = settingsRepo.autoCleanTrashEnabledFlow.first()
             if (autoCleanEnabled) {
-                val days = settingsRepo.autoCleanTrashDaysFlow.first()
-                val constraints = androidx.work.Constraints.Builder()
-                    .setRequiresBatteryNotLow(false)
-                    .build()
-                val workRequest = androidx.work.PeriodicWorkRequestBuilder<com.inferno.gallery.workers.AutoCleanTrashWorker>(
-                    24, java.util.concurrent.TimeUnit.HOURS
-                )
-                    .setConstraints(constraints)
-                    .build()
-                WorkManager.getInstance(this@GalleryApplication).enqueueUniquePeriodicWork(
-                    "AutoCleanTrashWorker",
-                    androidx.work.ExistingPeriodicWorkPolicy.UPDATE,
-                    workRequest
-                )
+                val workRequest =
+                    androidx.work.PeriodicWorkRequestBuilder<com.inferno.gallery.workers.AutoCleanTrashWorker>(
+                        24,
+                        java.util.concurrent.TimeUnit.HOURS
+                    ).build()
+                WorkManager.getInstance(this@GalleryApplication)
+                    .enqueueUniquePeriodicWork(
+                        "AutoCleanTrashWorker",
+                        androidx.work.ExistingPeriodicWorkPolicy.UPDATE,
+                        workRequest
+                    )
             }
         }
     }
