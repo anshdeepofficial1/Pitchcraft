@@ -72,6 +72,14 @@ jobs:
             echo "$NATIVE" | grep -q "'$ABI'" || { echo "::error::Missing native ABI: $ABI"; exit 1; }
           done
 
+      - name: Enforce Android 16 / 16KiB APK compatibility
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          SDKROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          "$SDKROOT/build-tools/36.0.0/zipalign" -c -P 16 -v 4 "$APK"
+          python3 .github/scripts/check-native-16kb.py "$APK"
+
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -92,6 +100,16 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: bash .github/scripts/emulator-smoke.sh
+
+      - name: Fresh APK install and startup on Android 16 (API 36)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
           target: google_apis
           arch: x86_64
           profile: pixel_6
