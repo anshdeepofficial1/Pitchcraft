@@ -323,13 +323,9 @@ fun MainAppLayout(
         }
     }
 
-    val hasRequiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        photosGranted && videosGranted && allFilesGranted
-    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        photosGranted && allFilesGranted
-    } else {
-        photosGranted
-    }
+    // Core gallery needs read access, not special all-files management.
+    // Android's all-files grant independently suffices to read the library.
+    val hasRequiredPermissions = allFilesGranted || (photosGranted && videosGranted)
     
     if (onboardingCompleted == null) {
         Box(
@@ -389,7 +385,7 @@ fun MainAppLayout(
                     }
                 } ?: true
 
-                if (hasRequestedMediaOnce && !photosGranted && !showRationale) {
+                if (hasRequestedMediaOnce && !photosGranted && !videosGranted && !showRationale) {
                     Toast.makeText(context, "Permissions permanently denied. Opening settings...", Toast.LENGTH_LONG).show()
                     val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                         data = Uri.fromParts("package", context.packageName, null)
