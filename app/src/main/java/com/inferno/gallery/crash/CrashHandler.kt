@@ -89,7 +89,7 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
 
         return buildString {
             appendLine("═══════════════════════════════════════════")
-            appendLine("  PHOTON GALLERY — CRASH REPORT")
+            appendLine("  PITCHCRAFT — CRASH REPORT")
             appendLine("═══════════════════════════════════════════")
             appendLine()
             appendLine("Timestamp   : $timestamp")
