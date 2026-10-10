@@ -4,37 +4,47 @@ set -euo pipefail
 APK="app/build/outputs/apk/debug/app-debug.apk"
 PACKAGE="com.anshdeep.pitchcraft.debug"
 ACTIVITY="com.inferno.gallery.MainActivity"
+LOGFILE="pitchcraft-logcat.txt"
 
 echo "Checking APK: $APK"
 test -f "$APK"
 
-adb logcat -c
 adb install -r "$APK"
 adb shell am force-stop "$PACKAGE" || true
+adb logcat -c
+rm -f "$LOGFILE"
+
+# Start recording BEFORE launch so the first-millisecond crash cannot scroll out.
+adb logcat -v threadtime > "$LOGFILE" 2>&1 &
+LOGCAT_PID=$!
+
+cleanup() {
+  kill "$LOGCAT_PID" 2>/dev/null || true
+  wait "$LOGCAT_PID" 2>/dev/null || true
+}
+trap cleanup EXIT
 
 echo "Launching Pitchcraft..."
-adb shell am start -W -n "$PACKAGE/$ACTIVITY"
-sleep 12
+adb shell am start -W -n "$PACKAGE/$ACTIVITY" || true
+
+sleep 15
 
 PID="$(adb shell pidof "$PACKAGE" 2>/dev/null | tr -d '\r' || true)"
+cleanup
+trap - EXIT
+
+echo "===== Pitchcraft-focused log ====="
+grep -n -E -B 25 -A 100 "PitchcraftCrash|com\.anshdeep\.pitchcraft|com\.inferno\.gallery|FATAL EXCEPTION|AndroidRuntime|Caused by:|SIG(SEGV|ABRT)|Fatal signal" "$LOGFILE" || true
+
 if [ -z "$PID" ]; then
-  echo "Pitchcraft process is not alive after launch."
-  echo "===== Pitchcraft processes ====="
-  adb shell ps -A | grep -i pitchcraft || true
-  echo "===== Top activity ====="
-  adb shell dumpsys activity top | head -n 120 || true
-  adb logcat -d -v threadtime > pitchcraft-logcat.txt || true
-  echo "===== Pitchcraft crash log ====="
-  grep -n -E -B 40 -A 140 "FATAL EXCEPTION|AndroidRuntime|Process: $PACKAGE|$PACKAGE|PHOTON_CRASH|PITCHCRAFT|GalleryApplication|MainActivity|Caused by:" pitchcraft-logcat.txt || cat pitchcraft-logcat.txt
+  echo "Pitchcraft main process is not alive after launch."
   exit 1
 fi
 
 adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" || true
-adb logcat -d -v threadtime > pitchcraft-logcat.txt
 
-if grep -E "FATAL EXCEPTION|Process: com\.anshdeep\.pitchcraft\.debug|AndroidRuntime:.*FATAL" pitchcraft-logcat.txt; then
+if grep -q -E "PitchcraftCrash|FATAL EXCEPTION|Process: com\.anshdeep\.pitchcraft\.debug|AndroidRuntime:.*FATAL|Fatal signal" "$LOGFILE"; then
   echo "Fatal runtime crash detected."
-  cat pitchcraft-logcat.txt
   exit 1
 fi
 
