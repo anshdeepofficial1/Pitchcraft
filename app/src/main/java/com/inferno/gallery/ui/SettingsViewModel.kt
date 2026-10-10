@@ -1,5 +1,7 @@
 package com.inferno.gallery.ui
 
+import androidx.room.withTransaction
+
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -400,6 +402,92 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 .setExpedited(androidx.work.OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                 .build()
             WorkManager.getInstance(getApplication()).enqueueUniqueWork("OcrIndexWorker", ExistingWorkPolicy.REPLACE, request)
+        }
+    }
+
+
+    val faceIndexingEnabled: StateFlow<Boolean> = repository.faceIndexingEnabledFlow.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = true
+    )
+
+    val processingPerformance: StateFlow<com.inferno.gallery.data.ProcessingPerformance> =
+        repository.processingPerformanceFlow.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = com.inferno.gallery.data.ProcessingPerformance.MAX
+        )
+
+    val faceProgress = com.inferno.gallery.data.IndexingProgressManager.faceProgress
+
+    val unindexedFaceCount: StateFlow<Int> = db.mediaDao().observeUnindexedFaceCount().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = 0
+    )
+
+    val faceCount: StateFlow<Int> = db.faceDao().observeFaceCount().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = 0
+    )
+
+    val peopleCount: StateFlow<Int> = db.faceDao().observePeopleCount().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = 0
+    )
+
+    fun setFaceIndexingEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.updateFaceIndexingEnabled(enabled)
+            if (!enabled) {
+                WorkManager.getInstance(getApplication()).cancelUniqueWork("FaceIndexWorker")
+            }
+        }
+    }
+
+    fun setProcessingPerformance(mode: com.inferno.gallery.data.ProcessingPerformance) {
+        viewModelScope.launch {
+            repository.updateProcessingPerformance(mode)
+        }
+    }
+
+    fun startFaceIndexing() {
+        viewModelScope.launch {
+            repository.updateFaceIndexingEnabled(true)
+            val request = OneTimeWorkRequestBuilder<com.inferno.gallery.workers.FaceIndexWorker>()
+                .build()
+            WorkManager.getInstance(getApplication()).enqueueUniqueWork(
+                "FaceIndexWorker",
+                ExistingWorkPolicy.REPLACE,
+                request
+            )
+        }
+    }
+
+    fun stopFaceIndexing() {
+        WorkManager.getInstance(getApplication()).cancelUniqueWork("FaceIndexWorker")
+    }
+
+    fun rebuildFaceIndex() {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            WorkManager.getInstance(getApplication()).cancelUniqueWork("FaceIndexWorker")
+            db.withTransaction {
+                db.faceDao().clearFaces()
+                db.faceDao().clearClusters()
+                db.mediaDao().resetFaceIndexStatus()
+            }
+            java.io.File(getApplication<android.app.Application>().filesDir, "face_crops")
+                .deleteRecursively()
+            val request = OneTimeWorkRequestBuilder<com.inferno.gallery.workers.FaceIndexWorker>()
+                .build()
+            WorkManager.getInstance(getApplication()).enqueueUniqueWork(
+                "FaceIndexWorker",
+                ExistingWorkPolicy.REPLACE,
+                request
+            )
         }
     }
 
