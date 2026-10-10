@@ -409,6 +409,7 @@ private fun SearchResultsList(
     val haptic = LocalHapticFeedback.current
     val isSelectionMode by viewModel.isSelectionMode.collectAsState()
     val selectedUris by viewModel.selectedUris.collectAsState()
+    val favoriteIds by viewModel.favoriteIds.collectAsState()
 
     val onFtsClick = remember(onPhotoClick, query, viewModel, isSelectionMode) {
         { item: GalleryItem ->
@@ -442,15 +443,15 @@ private fun SearchResultsList(
     val totalMatches = ftsResults.size + smartResults.size
 
     LazyVerticalGrid(
-        columns = GridCells.Fixed(4),
+        columns = GridCells.Fixed(2),
         state = lazyGridState,
-        verticalArrangement = Arrangement.spacedBy(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
-        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(13.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         modifier = Modifier.fillMaxSize()
     ) {
         // Total Matches Header Banner (Single Dominant Count Indicator)
-        item(span = { GridItemSpan(4) }) {
+        item(span = { GridItemSpan(2) }) {
             Surface(
                 shape = ShapeLarge,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -491,7 +492,7 @@ private fun SearchResultsList(
 
         // 1. Text Matches Section (OCR)
         if (ftsResults.isNotEmpty()) {
-            item(span = { GridItemSpan(4) }) {
+            item(span = { GridItemSpan(2) }) {
                 PhotonSectionHeader(
                     title = "Text matches"
                 )
@@ -501,17 +502,22 @@ private fun SearchResultsList(
                 key = { "fts_grid_${it.id}" }
             ) { item ->
                 val isSelected = selectedUris.contains(item.uri.toString())
-                com.inferno.gallery.ui.components.OptimizedThumbnailCell(
+                ReferencePhotoCard(
                     item = item,
-                    sharedTransitionScope = sharedTransitionScope,
-                    animatedVisibilityScope = animatedVisibilityScope,
-                    onClick = onFtsClick,
-                    onLongClick = onLongClickItem,
-                    isSelected = isSelected
+                    modifier = Modifier.fillMaxWidth().height(190.dp),
+                    overline = "TEXT MATCH",
+                    selected = isSelected,
+                    isFavorite = item.id in favoriteIds,
+                    onToggleFavorite = {
+                        if (isSelectionMode) onFtsClick(item)
+                        else viewModel.toggleFavorite(item.id)
+                    },
+                    onClick = { onFtsClick(item) },
+                    onLongClick = { onLongClickItem(item) }
                 )
             }
             if (ftsResults.size > 8) {
-                item(span = { GridItemSpan(4) }) {
+                item(span = { GridItemSpan(2) }) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -542,14 +548,14 @@ private fun SearchResultsList(
 
         // Section separator spacer
         if (ftsResults.isNotEmpty() && smartResults.isNotEmpty()) {
-            item(span = { GridItemSpan(4) }) {
+            item(span = { GridItemSpan(2) }) {
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
 
         // 2. Semantic Matches Section (Smart Search)
         if (smartResults.isNotEmpty()) {
-            item(span = { GridItemSpan(4) }) {
+            item(span = { GridItemSpan(2) }) {
                 PhotonSectionHeader(
                     title = "Semantic matches"
                 )
@@ -559,17 +565,22 @@ private fun SearchResultsList(
                 key = { "smart_grid_${it.id}" }
             ) { item ->
                 val isSelected = selectedUris.contains(item.uri.toString())
-                com.inferno.gallery.ui.components.OptimizedThumbnailCell(
+                ReferencePhotoCard(
                     item = item,
-                    sharedTransitionScope = sharedTransitionScope,
-                    animatedVisibilityScope = animatedVisibilityScope,
-                    onClick = onSmartClick,
-                    onLongClick = onLongClickItem,
-                    isSelected = isSelected
+                    modifier = Modifier.fillMaxWidth().height(190.dp),
+                    overline = "SMART MATCH",
+                    selected = isSelected,
+                    isFavorite = item.id in favoriteIds,
+                    onToggleFavorite = {
+                        if (isSelectionMode) onSmartClick(item)
+                        else viewModel.toggleFavorite(item.id)
+                    },
+                    onClick = { onSmartClick(item) },
+                    onLongClick = { onLongClickItem(item) }
                 )
             }
             if (smartResults.size > 8) {
-                item(span = { GridItemSpan(4) }) {
+                item(span = { GridItemSpan(2) }) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
