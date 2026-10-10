@@ -58,7 +58,7 @@ jobs:
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          script: bash .github/scripts/emulator-smoke.sh
+          script: bash .github/scripts/emulator-smoke.sh && bash .github/scripts/reference-ui-gallery-smoke.sh
       - name: Save emulator screenshot and startup log
         if: always()
         uses: actions/upload-artifact@v4
@@ -67,6 +67,8 @@ jobs:
           path: |
             pitchcraft-api-*.png
             pitchcraft-logcat.txt
+            pitchcraft-gallery-zero-images.png
+            pitchcraft-reference-ui.xml
           if-no-files-found: ignore
           retention-days: 7
       - name: Save isolated debug APK
