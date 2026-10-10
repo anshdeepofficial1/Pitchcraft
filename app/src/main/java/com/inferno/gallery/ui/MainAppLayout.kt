@@ -868,6 +868,9 @@ fun MainAppLayout(
                     onPersonClick = { clusterId ->
                         nestedNavController.navigate("person/$clusterId")
                     },
+                    onPeopleProgressClick = {
+                        nestedNavController.navigate("people_processing")
+                    },
                     onNavigateToVault = onNavigateToVault,
                     onNavigateToDuplicateCleaner = { nestedNavController.navigate("duplicate_cleaner") },
                     onNavigateToPhotoMap = { nestedNavController.navigate("photo_map") },
@@ -987,6 +990,16 @@ fun MainAppLayout(
                     )
                 }
             }
+            composable("people_processing") {
+                PeopleProcessingScreen(
+                    viewModel = viewModel,
+                    onBack = { nestedNavController.popBackStack() },
+                    onPersonClick = { clusterId ->
+                        nestedNavController.navigate("person/$clusterId")
+                    }
+                )
+            }
+
             composable("person/{clusterId}") { backStackEntry ->
                 val clusterId = backStackEntry.arguments?.getString("clusterId")?.toLongOrNull()
                     ?: return@composable
