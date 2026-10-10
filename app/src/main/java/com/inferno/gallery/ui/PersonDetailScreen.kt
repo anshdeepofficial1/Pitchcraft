@@ -1,5 +1,12 @@
 package com.inferno.gallery.ui
 
+import android.Manifest
+import android.app.DatePickerDialog
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,20 +20,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -43,14 +52,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import coil3.compose.AsyncImage
-import com.inferno.gallery.R
 import java.io.File
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,107 +70,361 @@ fun PersonDetailScreen(
     clusterId: Long,
     viewModel: GalleryViewModel,
     onBack: () -> Unit,
-    onPhotoClick: (String, String?, String?) -> Unit
+    onPhotoClick: (String, String?, String?) -> Unit,
+    onStory: () -> Unit = {},
+    onCreateCollage: (List<String>) -> Unit = {}
 ) {
     val people by viewModel.people.collectAsState()
     val media by viewModel.personMedia.collectAsState()
     val faces by viewModel.personFaces.collectAsState()
     val person = people.firstOrNull { it.clusterId == clusterId }
+    val context = LocalContext.current
 
-    var showRename by remember { mutableStateOf(false) }
-    var showMerge by remember { mutableStateOf(false) }
+    var menuExpanded by remember { mutableStateOf(false) }
+    var showNameDialog by remember { mutableStateOf(false) }
+    var showRelationDialog by remember { mutableStateOf(false) }
+    var showCoverDialog by remember { mutableStateOf(false) }
+    var showFacesDialog by remember { mutableStateOf(false) }
+    var showMergeDialog by remember { mutableStateOf(false) }
     var nameDraft by remember(person?.name) { mutableStateOf(person?.name.orEmpty()) }
+    var customRelation by remember(person?.relation) { mutableStateOf(person?.relation.orEmpty()) }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { }
 
     LaunchedEffect(clusterId) {
         viewModel.loadPersonMedia(clusterId)
     }
 
-    if (showRename) {
+    val relationOptions = listOf(
+        "Family", "Mother", "Father", "Brother", "Sister",
+        "Partner", "Friend", "Relative", "Colleague", "Classmate", "Other"
+    )
+
+    if (showNameDialog) {
         AlertDialog(
-            onDismissRequest = { showRename = false },
+            onDismissRequest = { showNameDialog = false },
             title = { Text("Name this person") },
             text = {
                 TextField(
                     value = nameDraft,
                     onValueChange = { nameDraft = it },
                     singleLine = true,
-                    placeholder = { Text("Person name") }
+                    placeholder = { Text("Name") }
                 )
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        if (nameDraft.isNotBlank()) viewModel.renamePerson(clusterId, nameDraft)
-                        showRename = false
+                        if (nameDraft.isNotBlank()) {
+                            viewModel.renamePerson(clusterId, nameDraft)
+                        }
+                        showNameDialog = false
                     }
                 ) { Text("Save") }
             },
             dismissButton = {
-                TextButton(onClick = { showRename = false }) { Text("Cancel") }
+                TextButton(onClick = { showNameDialog = false }) { Text("Cancel") }
             }
         )
+    }
+
+    if (showRelationDialog) {
+        Dialog(onDismissRequest = { showRelationDialog = false }) {
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh
+            ) {
+                Column(Modifier.padding(20.dp)) {
+                    Text(
+                        "Relationship",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "How is this person related to you?",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    relationOptions.forEach { option ->
+                        Surface(
+                            onClick = {
+                                if (option == "Other") {
+                                    customRelation = ""
+                                } else {
+                                    viewModel.updatePersonRelation(clusterId, option)
+                                    showRelationDialog = false
+                                }
+                            },
+                            shape = RoundedCornerShape(16.dp),
+                            color = if (person?.relation == option)
+                                MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surface,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)
+                        ) {
+                            Text(
+                                option,
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
+                                fontWeight = if (person?.relation == option) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    TextField(
+                        value = customRelation,
+                        onValueChange = { customRelation = it },
+                        placeholder = { Text("Custom relation") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.updatePersonRelation(clusterId, null)
+                                showRelationDialog = false
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Clear") }
+                        Button(
+                            onClick = {
+                                viewModel.updatePersonRelation(
+                                    clusterId,
+                                    customRelation.takeIf { it.isNotBlank() } ?: "Other"
+                                )
+                                showRelationDialog = false
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Save") }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showCoverDialog) {
+        Dialog(onDismissRequest = { showCoverDialog = false }) {
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    Text(
+                        "Change main photo",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "Choose the face shown on the People card and profile.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        contentPadding = PaddingValues(2.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.height(360.dp)
+                    ) {
+                        gridItems(faces, key = { it.id }) { face ->
+                            val selected = person?.coverFaceId == face.id
+                            AsyncImage(
+                                model = face.cropCachePath?.let { File(it) },
+                                contentDescription = "Face",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(1f)
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .then(
+                                        if (selected) Modifier.border(
+                                            3.dp,
+                                            MaterialTheme.colorScheme.primary,
+                                            RoundedCornerShape(18.dp)
+                                        ) else Modifier
+                                    )
+                                    .clickable {
+                                        viewModel.changePersonCover(clusterId, face.id)
+                                        showCoverDialog = false
+                                    }
+                            )
+                        }
+                    }
+                    TextButton(
+                        onClick = { showCoverDialog = false },
+                        modifier = Modifier.align(Alignment.End)
+                    ) { Text("Close") }
+                }
+            }
+        }
+    }
+
+    if (showFacesDialog) {
+        Dialog(onDismissRequest = { showFacesDialog = false }) {
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    Text(
+                        "Manage detected faces",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "Separate an incorrect match into a new person.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.height(380.dp)
+                    ) {
+                        gridItems(faces, key = { it.id }) { face ->
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                AsyncImage(
+                                    model = face.cropCachePath?.let { File(it) },
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .aspectRatio(1f)
+                                        .clip(RoundedCornerShape(16.dp))
+                                )
+                                TextButton(
+                                    onClick = {
+                                        viewModel.splitFaceIntoNewPerson(face.id, clusterId)
+                                    }
+                                ) {
+                                    Text(
+                                        "Separate",
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    TextButton(
+                        onClick = { showFacesDialog = false },
+                        modifier = Modifier.align(Alignment.End)
+                    ) { Text("Done") }
+                }
+            }
+        }
+    }
+
+    if (showMergeDialog) {
+        Dialog(onDismissRequest = { showMergeDialog = false }) {
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer
+            ) {
+                Column(Modifier.padding(18.dp)) {
+                    Text(
+                        "Merge person",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    people.filter { it.clusterId != clusterId }.take(30).forEach { target ->
+                        Surface(
+                            onClick = {
+                                viewModel.mergePeople(clusterId, target.clusterId)
+                                showMergeDialog = false
+                                onBack()
+                            },
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)
+                        ) {
+                            Row(
+                                Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                AsyncImage(
+                                    model = target.coverCropPath?.let { File(it) },
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.size(42.dp).clip(CircleShape)
+                                )
+                                Spacer(Modifier.size(10.dp))
+                                Text(target.name ?: "Person ${target.clusterId}")
+                            }
+                        }
+                    }
+                    TextButton(
+                        onClick = { showMergeDialog = false },
+                        modifier = Modifier.align(Alignment.End)
+                    ) { Text("Cancel") }
+                }
+            }
+        }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            person?.name ?: "Person",
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            "${media.size} photos • ${faces.size} faces",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
+                title = { Text(person?.name ?: "Person", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Text("‹", style = MaterialTheme.typography.headlineMedium)
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showRename = true }) {
-                        Icon(
-                            imageVector = androidx.compose.ui.graphics.vector.ImageVector.vectorResource(R.drawable.ic_ms_person),
-                            contentDescription = "Rename"
-                        )
-                    }
                     Box {
-                        IconButton(onClick = { showMerge = true }) {
+                        IconButton(onClick = { menuExpanded = true }) {
                             Text("⋮", style = MaterialTheme.typography.headlineSmall)
                         }
-                        DropdownMenu(expanded = showMerge, onDismissRequest = { showMerge = false }) {
-                            people.filter { it.clusterId != clusterId }.take(40).forEach { target ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            "Merge into ${target.name ?: "Person ${target.clusterId}"}"
-                                        )
-                                    },
-                                    onClick = {
-                                        showMerge = false
-                                        viewModel.mergePeople(clusterId, target.clusterId)
-                                        onBack()
-                                    }
-                                )
-                            }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false }
+                        ) {
                             DropdownMenuItem(
-                                text = { Text(if (person?.isFavorite == true) "Remove favorite" else "Favorite person") },
+                                text = { Text("Change main photo") },
                                 onClick = {
-                                    showMerge = false
-                                    viewModel.setPersonFavorite(clusterId, person?.isFavorite != true)
+                                    menuExpanded = false
+                                    showCoverDialog = true
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Manage detected faces") },
+                                onClick = {
+                                    menuExpanded = false
+                                    showFacesDialog = true
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Merge with another person") },
+                                onClick = {
+                                    menuExpanded = false
+                                    showMergeDialog = true
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        if (person?.isFavorite == true)
+                                            "Remove from favorites"
+                                        else "Favorite person"
+                                    )
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    viewModel.setPersonFavorite(
+                                        clusterId,
+                                        person?.isFavorite != true
+                                    )
                                 }
                             )
                             DropdownMenuItem(
                                 text = { Text("Hide person") },
                                 onClick = {
-                                    showMerge = false
+                                    menuExpanded = false
                                     viewModel.setPersonHidden(clusterId, true)
                                     onBack()
                                 }
@@ -169,90 +435,204 @@ fun PersonDetailScreen(
             )
         }
     ) { padding ->
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 28.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            if (faces.isNotEmpty()) {
-                Text(
-                    "Face matches",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
-                )
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Surface(
+                    shape = RoundedCornerShape(34.dp),
+                    shadowElevation = 8.dp,
+                    tonalElevation = 2.dp,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 12.dp)
                 ) {
-                    items(faces, key = { it.id }) { face ->
-                        Surface(
-                            shape = RoundedCornerShape(18.dp),
-                            tonalElevation = 1.dp
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.primaryContainer,
+                                        MaterialTheme.colorScheme.surfaceContainerLow
+                                    )
+                                )
+                            )
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(22.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Column(
-                                modifier = Modifier.padding(6.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                            Surface(
+                                shape = RoundedCornerShape(36.dp),
+                                shadowElevation = 7.dp,
+                                modifier = Modifier.size(154.dp)
                             ) {
                                 AsyncImage(
-                                    model = face.cropCachePath?.let { File(it) },
-                                    contentDescription = null,
+                                    model = person?.coverCropPath?.let { File(it) },
+                                    contentDescription = person?.name,
                                     contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .size(82.dp)
-                                        .clip(RoundedCornerShape(14.dp))
+                                    modifier = Modifier.fillMaxSize()
                                 )
-                                TextButton(
-                                    onClick = { viewModel.splitFaceIntoNewPerson(face.id, clusterId) }
-                                ) {
-                                    Text("Separate", style = MaterialTheme.typography.labelSmall)
+                            }
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                person?.name ?: "Unnamed person",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                buildString {
+                                    append("${media.size} photos")
+                                    if (!person?.relation.isNullOrBlank()) {
+                                        append(" • ")
+                                        append(person?.relation)
+                                    }
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Spacer(Modifier.height(18.dp))
+                            ProfileRow(
+                                title = "Name",
+                                value = person?.name ?: "Add name",
+                                onClick = { showNameDialog = true }
+                            )
+                            ProfileRow(
+                                title = "Relationship",
+                                value = person?.relation ?: "Add relationship",
+                                onClick = { showRelationDialog = true }
+                            )
+
+                            val birthday = person?.birthdayEpochDay?.let {
+                                runCatching {
+                                    LocalDate.ofEpochDay(it).format(
+                                        DateTimeFormatter.ofPattern("d MMMM yyyy")
+                                    )
+                                }.getOrNull()
+                            }
+                            ProfileRow(
+                                title = "Birthday",
+                                value = birthday ?: "Add birthday",
+                                onClick = {
+                                    val initial = person?.birthdayEpochDay?.let(LocalDate::ofEpochDay)
+                                        ?: LocalDate.now().minusYears(20)
+                                    DatePickerDialog(
+                                        context,
+                                        { _, year, month, day ->
+                                            val selected = LocalDate.of(year, month + 1, day)
+                                            viewModel.updatePersonBirthday(
+                                                clusterId,
+                                                selected.toEpochDay(),
+                                                true
+                                            )
+                                            if (Build.VERSION.SDK_INT >= 33) {
+                                                notificationPermissionLauncher.launch(
+                                                    Manifest.permission.POST_NOTIFICATIONS
+                                                )
+                                            }
+                                        },
+                                        initial.year,
+                                        initial.monthValue - 1,
+                                        initial.dayOfMonth
+                                    ).show()
                                 }
+                            )
+
+                            Spacer(Modifier.height(16.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Button(
+                                    onClick = onStory,
+                                    enabled = media.isNotEmpty(),
+                                    modifier = Modifier.weight(1f)
+                                ) { Text("Story") }
+                                FilledTonalButton(
+                                    onClick = {
+                                        onCreateCollage(
+                                            media.take(6).map { it.uri.toString() }
+                                        )
+                                    },
+                                    enabled = media.size >= 2,
+                                    modifier = Modifier.weight(1f)
+                                ) { Text("Collage") }
                             }
                         }
                     }
                 }
-                Spacer(Modifier.height(8.dp))
             }
 
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "Photos",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.weight(1f))
-                if (person?.name.isNullOrBlank()) {
-                    FilledTonalButton(onClick = { showRename = true }) {
-                        Text("Add name")
-                    }
-                }
-            }
-
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                contentPadding = PaddingValues(3.dp),
-                horizontalArrangement = Arrangement.spacedBy(3.dp),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                gridItems(media, key = { it.id }) { item ->
-                    AsyncImage(
-                        model = item.resolvedUri,
-                        contentDescription = item.name,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
-                            .clip(RoundedCornerShape(5.dp))
-                            .clickable { onPhotoClick(item.id, null, null) }
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Photos",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        "${media.size}",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
+
+            gridItems(media, key = { it.id }) { item ->
+                AsyncImage(
+                    model = item.resolvedUri,
+                    contentDescription = item.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable { onPhotoClick(item.id, null, null) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileRow(
+    title: String,
+    value: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+    ) {
+        Row(
+            Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                title,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(0.38f)
+            )
+            Text(
+                value,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(0.62f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
