@@ -44,9 +44,13 @@ jobs:
               raise SystemExit("Android build tools missing")
           signer, aapt = str(tools[-1]), str(aapts[-1])
           def inspect(where, expected_version_code, expected_version_name):
-              matches = list(Path(where).rglob("*.apk"))
+              matches = sorted(Path(where).rglob("*.apk"))
+              print("Available APKs in", where, ":", [m.name for m in matches],flush=True)
+              if where == "old":
+                  # v1.0.1 used ABI splits: pick its actual universal APK, never an ABI split.
+                  matches = [p for p in matches if "universal" in p.name.lower()]
               if len(matches) != 1:
-                  raise SystemExit("Expected exactly one APK under " + where)
+                  raise SystemExit("Expected one universal 1.0.1 or single 1.0.2 APK under " + where)
               apk = matches[0]
               subprocess.run([signer, "verify", str(apk)], check=True)
               badging = subprocess.check_output([aapt, "dump", "badging", str(apk)], text=True).splitlines()[0]
