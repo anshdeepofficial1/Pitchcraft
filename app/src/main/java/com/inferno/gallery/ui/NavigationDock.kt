@@ -61,99 +61,110 @@ import com.inferno.gallery.R
  * Features a single accented indicator pill that smoothly slides across the tabs
  * with graceful non-bouncy physics and zero performance overhead.
  */
+/**
+ * Reference-style amber glass dock: five compact pictograms, one raised cream
+ * central monogram, no labels, no expanding tabs or opaque Material bottom bar.
+ * All destinations are backed by existing app routes.
+ */
 @Composable
 fun FloatingNavigationPill(
     currentRoute: String?,
     onNavigateToPhotos: () -> Unit,
     onNavigateToAlbums: () -> Unit,
     onNavigateToSearch: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onNavigateToFavorites: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {}
 ) {
-    val selectedIndex = when {
-        currentRoute == "photos" -> 0
-        currentRoute?.startsWith("album") == true || currentRoute == "albums" -> 1
-        currentRoute == "search" -> 2
-        else -> 0
-    }
-
-    Surface(
+    Box(
         modifier = modifier
             .fillMaxWidth(0.88f)
             .height(58.dp)
-            .border(1.dp, Color.White.copy(alpha = 0.18f), ShapeFull)
-            .pointerInput(Unit) {},
-        shape = ShapeFull,
-        color = Color(0xFFD06B12).copy(alpha = 0.92f),
-        shadowElevation = 18.dp
-    ) {
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 7.dp, vertical = 6.dp),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            val totalWidth = maxWidth
-            val tabWidth = totalWidth / 3
-
-            // Smooth non-bouncy sliding animation (Material 3 Emphasized / DampingRatioNoBouncy)
-            val animatedFraction by animateFloatAsState(
-                targetValue = selectedIndex.toFloat(),
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMedium
-                ),
-                label = "slidingPillFraction"
+            .clip(ShapeFull)
+            .background(
+                androidx.compose.ui.graphics.Brush.horizontalGradient(
+                    listOf(
+                        Color(0xFFCD802D).copy(alpha = 0.93f),
+                        Color(0xFFAD5816).copy(alpha = 0.96f),
+                        Color(0xFFCF7B27).copy(alpha = 0.93f)
+                    )
+                )
             )
-
-            // ── Single Accented Sliding Pill (GPU Translated via graphicsLayer) ──
+            .border(1.dp, Color(0x66FFE0B3), ShapeFull),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 9.dp, vertical = 5.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ReferenceDockIcon(
+                icon = R.drawable.ic_ms_image,
+                label = "Home",
+                selected = currentRoute == "photos",
+                onClick = onNavigateToPhotos
+            )
+            ReferenceDockIcon(
+                icon = R.drawable.ic_ms_photo_album,
+                label = "Albums",
+                selected = currentRoute == "albums",
+                onClick = onNavigateToAlbums
+            )
             Box(
                 modifier = Modifier
-                    .width(tabWidth)
-                    .fillMaxHeight()
-                    .graphicsLayer {
-                        translationX = animatedFraction * tabWidth.toPx()
-                    }
-                    .clip(ShapeFull)
-                    .background(Color(0xFFF8F3EC))
-            )
-
-            // ── The 3 Interactive Tabs ──
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
+                    .size(45.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(Color(0xFFFFF7EC))
+                    .clickable(onClick = onNavigateToPhotos),
+                contentAlignment = Alignment.Center
             ) {
-                SlidingPillTabItem(
-                    icon = { Icon(ImageVector.vectorResource(R.drawable.ic_ms_image), contentDescription = "Photos", modifier = Modifier.size(20.dp)) },
-                    label = "Photos",
-                    isSelected = selectedIndex == 0,
-                    modifier = Modifier.weight(1f),
-                    onClick = onNavigateToPhotos
-                )
-
-                SlidingPillTabItem(
-                    icon = {
-                        Icon(
-                            imageVector = ImageVector.vectorResource(R.drawable.ic_ms_photo_album),
-                            contentDescription = "Albums",
-                            modifier = Modifier.size(20.dp)
-                        )
-                    },
-                    label = "Albums",
-                    isSelected = selectedIndex == 1,
-                    modifier = Modifier.weight(1f),
-                    onClick = onNavigateToAlbums
-                )
-
-                SlidingPillTabItem(
-                    icon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_ms_search), contentDescription = "Search", modifier = Modifier.size(20.dp)) },
-                    label = "Search",
-                    isSelected = selectedIndex == 2,
-                    modifier = Modifier.weight(1f),
-                    onClick = onNavigateToSearch
+                Text(
+                    "P",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFF9D4C0E)
                 )
             }
+            ReferenceDockIcon(
+                icon = R.drawable.ic_ms_search,
+                label = "Search",
+                selected = currentRoute == "search",
+                onClick = onNavigateToSearch
+            )
+            ReferenceDockIcon(
+                icon = R.drawable.ic_ms_star,
+                label = "Favorites",
+                selected = currentRoute?.startsWith("album/Favorites") == true,
+                onClick = onNavigateToFavorites
+            )
         }
+    }
+}
+
+@Composable
+private fun ReferenceDockIcon(
+    icon: Int,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(42.dp)
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(
+                if (selected) Color.White.copy(alpha = 0.15f)
+                else Color.Transparent
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = ImageVector.vectorResource(icon),
+            contentDescription = label,
+            tint = Color(0xFFFFF9F1),
+            modifier = Modifier.size(21.dp)
+        )
     }
 }
 
