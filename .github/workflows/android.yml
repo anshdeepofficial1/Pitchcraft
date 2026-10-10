@@ -38,8 +38,24 @@ jobs:
             -o app/src/main/assets/models/mobilefacenet_portable_static_b1.onnx
           echo "0763fc33f54e138476194da95987e133b3e976075a6b1d3e1b2caedb251b1a36  app/src/main/assets/models/mobilefacenet_portable_static_b1.onnx" | sha256sum -c -
 
+      - name: Enforce People database safety and package contract
+        run: |
+          if grep -R -nE '\\.fallbackToDestructiveMigration' app/src/main/java/com/inferno/gallery/data/db; then
+            echo "::error::Destructive Room migration fallback is forbidden: would erase People indexing."
+            exit 1
+          fi
+          grep -q 'applicationIdSuffix = ".debug"' app/build.gradle.kts
+          grep -q 'versionCode = 3' app/build.gradle.kts
       - name: Build universal debug APK
         run: ./gradlew :app:assembleDebug --stacktrace
+      - name: Verify test-only debug APK ID and version
+        run: |
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          SDKROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          META="$("$SDKROOT/build-tools/36.0.0/aapt" dump badging "$APK" | head -n 1)"
+          echo "$META"
+          echo "$META" | grep -q "package: name='com.anshdeep.pitchcraft.debug'"
+          echo "$META" | grep -q "versionCode='3'"
 
       - name: Enable KVM
         run: |
