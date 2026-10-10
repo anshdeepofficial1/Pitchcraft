@@ -1493,6 +1493,45 @@ fun SettingsScreen(
                         }
 
                         "Library & Scanning" -> {
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                                SettingsGroupCard(
+                                    title = "Advanced file operations",
+                                    items = listOf({
+                                        Surface(
+                                            onClick = {
+                                                val intent = android.content.Intent(
+                                                    android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                                    android.net.Uri.parse("package:" + context.packageName)
+                                                )
+                                                runCatching { context.startActivity(intent) }.onFailure {
+                                                    context.startActivity(
+                                                        android.content.Intent(
+                                                            android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION
+                                                        )
+                                                    )
+                                                }
+                                            },
+                                            color = ReferencePalette.SoftCard,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Column(Modifier.fillMaxWidth().padding(17.dp)) {
+                                                Text(
+                                                    "Manage all-files access",
+                                                    color = ReferencePalette.Cream,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    style = MaterialTheme.typography.titleSmall
+                                                )
+                                                Spacer(Modifier.height(5.dp))
+                                                Text(
+                                                    "Optional. Enable only when folder-level tools need unrestricted file management. Not required to browse photos.",
+                                                    color = ReferencePalette.Secondary,
+                                                    style = MaterialTheme.typography.bodySmall
+                                                )
+                                            }
+                                        }
+                                    })
+                                )
+                            }
                             val allFolders by galleryViewModel.allBucketNames.collectAsState()
                             val excludedFolders by galleryViewModel.excludedFolders.collectAsState()
                             val scopeMode by galleryViewModel.libraryScopeMode.collectAsState()
