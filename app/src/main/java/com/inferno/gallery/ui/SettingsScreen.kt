@@ -188,7 +188,7 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showDeleteModelConfirm = false },
             title = { Text("Delete AI Model Files") },
-            text = { Text("This will delete the local ONNX model files (approx. 30MB+). You will not be able to use semantic search or index new images until you download them again. Are you sure?") },
+            text = { Text("This will delete the local ONNX model files (about 154MB). You will not be able to use semantic search or index new images until you download them again. Are you sure?") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -939,7 +939,7 @@ fun SettingsScreen(
                                         }
 
                                         Text(
-                                            text = "Download on-device MobileCLIP model (~100MB) to find photos using visual concepts like 'beach sunset' or 'white cat'.",
+                                            text = "Download on-device MobileCLIP models (~154MB) to find photos using visual concepts like 'beach sunset' or 'white cat'.",
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
