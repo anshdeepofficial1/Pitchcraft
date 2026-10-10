@@ -82,6 +82,19 @@ class FaceEngine(private val context: Context) : AutoCloseable {
             return@withContext file
         }
         file.delete()
+
+        // Release APKs built by GitHub bundle the verified model in assets,
+        // so face recognition works fully offline after installation.
+        val bundled = runCatching {
+            context.assets.open("models/$MODEL_NAME").use { input ->
+                FileOutputStream(file).use { output -> input.copyTo(output) }
+            }
+            file
+        }.getOrNull()
+        if (bundled != null && bundled.exists() && sha256(bundled).equals(MODEL_SHA256, ignoreCase = true)) {
+            return@withContext bundled
+        }
+        file.delete()
         val temp = File(modelDir, MODEL_NAME + ".part")
         temp.delete()
         val conn = (URL(MODEL_URL).openConnection() as HttpURLConnection).apply {
