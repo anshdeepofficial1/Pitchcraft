@@ -24,9 +24,15 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
-        // One universal APK containing all supported native ABIs.
+        // Universal by default. A separate diagnostic build can isolate 64-bit ARM
+        // devices (real phones), independently of the x86_64 CI emulators.
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+            val arm64Only = providers.gradleProperty("pitchcraftArm64Only").orNull == "true"
+            abiFilters += if (arm64Only) {
+                listOf("arm64-v8a")
+            } else {
+                listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+            }
         }
     }
 
