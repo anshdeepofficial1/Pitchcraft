@@ -32,6 +32,14 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
     }
 
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
+        // Always emit the complete exception before our custom crash UI takes over.
+        // Without this, replacing Android's default uncaught handler can hide the
+        // FATAL EXCEPTION line from logcat and make startup crashes impossible to diagnose.
+        android.util.Log.e(
+            "PitchcraftCrash",
+            "Uncaught exception on thread ${thread.name}",
+            throwable
+        )
         // Ignore ForegroundServiceStartNotAllowedException on Android 14+ (FGS timeout)
         val exName = throwable.javaClass.name
         val causeName = throwable.cause?.javaClass?.name ?: ""
