@@ -67,6 +67,15 @@ interface FaceDao {
     @Query("SELECT * FROM faces WHERE clusterId = :clusterId ORDER BY id DESC")
     fun observeFacesForCluster(clusterId: Long): Flow<List<FaceEntity>>
 
+    @Query("SELECT * FROM faces WHERE clusterId = :clusterId ORDER BY id ASC")
+    suspend fun getFacesForCluster(clusterId: Long): List<FaceEntity>
+
+    @Query("SELECT * FROM faces ORDER BY id ASC")
+    suspend fun getAllFaces(): List<FaceEntity>
+
+    @Query("SELECT * FROM faces WHERE mediaId = :mediaId")
+    suspend fun getFacesForMedia(mediaId: Long): List<FaceEntity>
+
     @Query("SELECT DISTINCT mediaId FROM faces WHERE clusterId = :clusterId")
     suspend fun getMediaIdsForCluster(clusterId: Long): List<Long>
 
@@ -81,6 +90,9 @@ interface FaceDao {
 
     @Query("UPDATE faces SET clusterId = :intoClusterId WHERE clusterId = :fromClusterId")
     suspend fun moveFacesToCluster(fromClusterId: Long, intoClusterId: Long)
+
+    @Query("UPDATE faces SET clusterId = :clusterId WHERE id = :faceId")
+    suspend fun moveFaceToCluster(faceId: Long, clusterId: Long)
 
     @Query("DELETE FROM person_clusters WHERE clusterId = :clusterId")
     suspend fun deleteCluster(clusterId: Long)
