@@ -351,11 +351,13 @@ fun GalleryScreen(
                     alpha = gridAlpha
                 }
         ) {
-            if (isMainTab && !isSelectionMode) {
+            if (isMainTab) {
                 ReferenceGallerySurface(
                     pagedMedia = pagedMedia,
                     onMediaClick = onMediaClick,
                     onMediaLongClick = onMediaLongClick,
+                    isSelectionMode = isSelectionMode,
+                    selectedUris = selectedUris,
                     contentPadding = contentPadding,
                     modifier = modifier
                 )
@@ -450,7 +452,7 @@ fun GalleryScreen(
             }
         }
 
-        if (!isMainTab || isSelectionMode) FastScroller(
+        if (!isMainTab) FastScroller(
             lazyGridState = lazyGridState,
             totalItems = totalItems,
             modifier = Modifier
