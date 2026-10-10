@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -1922,45 +1923,36 @@ fun SettingsGroupCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .padding(top = 10.dp, bottom = 2.dp)
+            .padding(top = 13.dp, bottom = 4.dp)
     ) {
         if (title != null) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.titleSmall,
+                color = ReferencePalette.Cream,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                modifier = Modifier.padding(start = 5.dp, bottom = 11.dp)
             )
         }
-
-        Column(
+        Surface(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+            shape = RoundedCornerShape(27.dp),
+            color = ReferencePalette.SoftCard.copy(alpha = 0.94f),
+            border = BorderStroke(0.8.dp, ReferencePalette.Outline),
+            shadowElevation = 0.dp
         ) {
-            items.forEachIndexed { index, itemContent ->
-                val shape = when {
-                    items.size == 1 -> ShapeLarge
-                    index == 0 -> RoundedCornerShape(
-                        topStart = 16.dp,
-                        topEnd = 16.dp,
-                        bottomStart = 4.dp,
-                        bottomEnd = 4.dp
-                    )
-                    index == items.size - 1 -> RoundedCornerShape(
-                        topStart = 4.dp,
-                        topEnd = 4.dp,
-                        bottomStart = 16.dp,
-                        bottomEnd = 16.dp
-                    )
-                    else -> RoundedCornerShape(4.dp)
-                }
-                Surface(
-                    shape = shape,
-                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    itemContent()
+            Column(Modifier.fillMaxWidth()) {
+                items.forEachIndexed { index, itemContent ->
+                    Box(Modifier.fillMaxWidth()) { itemContent() }
+                    if (index < items.lastIndex) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 18.dp)
+                                .height(0.8.dp)
+                                .background(Color.White.copy(alpha = 0.09f))
+                        )
+                    }
                 }
             }
         }
