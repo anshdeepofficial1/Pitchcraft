@@ -1151,7 +1151,7 @@ private suspend fun saveStitchedImage(
             val values = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
                 put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
-                put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOCUMENTS + "/PhotonGallery_Stitch")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOCUMENTS + "/Pitchcraft_Stitch")
             }
             val resolver = context.contentResolver
             val outputUri = resolver.insert(MediaStore.Files.getContentUri("external"), values)
@@ -1235,7 +1235,7 @@ private suspend fun saveStitchedImage(
     val values = ContentValues().apply {
         put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
         put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
-        put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES + "/PhotonGallery_Stitch")
+        put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES + "/Pitchcraft_Stitch")
     }
     val resolver = context.contentResolver
     val outputUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
