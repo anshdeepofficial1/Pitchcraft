@@ -31,3 +31,6 @@ The only network request used by People indexing is the one-time download of the
 GitHub Actions produces a debug APK on every push to main.
 
 For local Android Studio builds use JDK 17, Android SDK 36 and Gradle 8.13.
+
+
+CI test build marker: local smart gallery v1.
