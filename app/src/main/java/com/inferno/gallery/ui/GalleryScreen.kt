@@ -241,6 +241,7 @@ fun GalleryScreen(
     val viewMode by viewModel.viewMode.collectAsState()
     val isSelectionMode by viewModel.isSelectionMode.collectAsState()
     val selectedUris by viewModel.selectedUris.collectAsState()
+    val favoriteIds by viewModel.favoriteIds.collectAsState()
     val gridCellsCount by viewModel.gridCellsCount.collectAsState()
     val thumbnailCornerRadius by viewModel.thumbnailCornerRadius.collectAsState()
     val cacheThumbnailsEnabled by viewModel.cacheThumbnailsEnabled.collectAsState()
@@ -358,6 +359,8 @@ fun GalleryScreen(
                     onMediaLongClick = onMediaLongClick,
                     isSelectionMode = isSelectionMode,
                     selectedUris = selectedUris,
+                    favoriteIds = favoriteIds,
+                    onToggleFavorite = viewModel::toggleFavorite,
                     contentPadding = contentPadding,
                     modifier = modifier
                 )
