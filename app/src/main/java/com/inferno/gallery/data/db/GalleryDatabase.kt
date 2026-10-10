@@ -114,6 +114,21 @@ interface MediaDao {
     @Query("SELECT COUNT(id) FROM core_media WHERE isVideo = 0 AND is_indexed_ocr = 0 AND bucketName != 'Trash' AND uriString NOT IN (SELECT originalUri FROM vault_media)")
     fun observeUnindexedOcrImageCount(): Flow<Int>
 
+    @Query("UPDATE core_media SET is_indexed_faces = :isIndexed WHERE id = :id")
+    suspend fun updateFaceIndexStatus(id: Long, isIndexed: Boolean)
+
+    @Query("UPDATE core_media SET is_indexed_faces = 1 WHERE id IN (:ids)")
+    suspend fun markFacesIndexed(ids: List<Long>)
+
+    @Query("UPDATE core_media SET is_indexed_faces = 0")
+    suspend fun resetFaceIndexStatus()
+
+    @Query("SELECT * FROM core_media WHERE isVideo = 0 AND is_indexed_faces = 0 AND bucketName != 'Trash' AND uriString NOT IN (SELECT originalUri FROM vault_media)")
+    suspend fun getUnindexedFaceMedia(): List<CoreMediaEntity>
+
+    @Query("SELECT COUNT(id) FROM core_media WHERE isVideo = 0 AND is_indexed_faces = 0 AND bucketName != 'Trash' AND uriString NOT IN (SELECT originalUri FROM vault_media)")
+    fun observeUnindexedFaceCount(): Flow<Int>
+
     @Query("SELECT COUNT(*) FROM core_media WHERE bucketName = 'Trash'")
     fun observeTrashCount(): Flow<Int>
 
@@ -196,12 +211,14 @@ interface MediaDao {
         MediaEmbeddingEntity::class,
         MediaEmbeddingStatusEntity::class,
         VaultMediaEntity::class,
-        GeocodedLocation::class
+        GeocodedLocation::class,
+        FaceEntity::class,
+        PersonClusterEntity::class
         // ImageFtsEntity is intentionally excluded: @Fts5 has a KSP 2.2.x incompatibility.
         // The FTS5 virtual table is instead created manually in DatabaseProvider's
         // RoomDatabase.Callback onCreate hook using raw CREATE VIRTUAL TABLE SQL.
     ],
-    version = 25,
+    version = 26,
     exportSchema = true
 )
 @androidx.room.TypeConverters(EmbeddingConverter::class)
@@ -209,6 +226,7 @@ abstract class GalleryDatabase : RoomDatabase() {
     abstract fun mediaDao(): MediaDao
     abstract fun embeddingDao(): EmbeddingDao
     abstract fun embeddingStatusDao(): EmbeddingStatusDao
+    abstract fun faceDao(): FaceDao
     abstract fun vaultDao(): VaultDao
     abstract fun placesDao(): PlacesDao
 }
