@@ -13,9 +13,32 @@ sleep 4
 DISPLAY="$(adb shell wm size | tr -d '\r' | tail -n1)"
 WIDTH="$(printf '%s' "$DISPLAY" | sed -E 's/.* ([0-9]+)x([0-9]+).*/\1/')"
 HEIGHT="$(printf '%s' "$DISPLAY" | sed -E 's/.* ([0-9]+)x([0-9]+).*/\2/')"
-for attempt in $(seq 1 12); do
+for attempt in $(seq 1 15); do
   adb shell uiautomator dump /sdcard/pitchcraft-onboarding.xml >/dev/null || true
   adb pull /sdcard/pitchcraft-onboarding.xml pitchcraft-onboarding.xml >/dev/null || true
+  if grep -q 'Pixel Launcher isn.t responding' pitchcraft-onboarding.xml; then
+    echo "::warning::Android system launcher ANR, dismissing the emulator-owned dialog"
+    WAIT_COORD="$(python3 - <<'PY'
+import re, xml.etree.ElementTree as ET
+try:
+    for node in ET.parse('pitchcraft-onboarding.xml').getroot().iter('node'):
+        if node.get('text') in ('Wait','Close app'):
+            b=[int(i) for i in re.findall(r'\d+',node.get('bounds',''))]
+            if len(b)==4:
+                print((b[0]+b[2])//2,(b[1]+b[3])//2)
+                break
+except (OSError,ET.ParseError):
+    pass
+PY
+)"
+    if [ -n "$WAIT_COORD" ]; then
+      read -r WX WY <<< "$WAIT_COORD"
+      adb shell input tap "$WX" "$WY"
+    fi
+    adb shell am start -W -n "$PACKAGE/$ACTIVITY" >/dev/null || true
+    sleep 5
+    continue
+  fi
   if grep -q 'text="Your story starts here"\|text="Your collection"\|text="Your people"' pitchcraft-onboarding.xml; then
     break
   fi
