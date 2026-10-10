@@ -400,8 +400,9 @@ object DatabaseProvider {
                 MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_22_24,
                 MIGRATION_24_25, MIGRATION_23_25, MIGRATION_22_25, MIGRATION_25_26, MIGRATION_26_27
             )
-            .fallbackToDestructiveMigrationOnDowngrade(true)
-            .fallbackToDestructiveMigration(true)
+            // Never silently recreate the gallery database on a failed or missing migration.
+            // Face embeddings, named People clusters and indexing progress must survive upgrades.
+            // A missing migration should fail visibly while leaving the original DB intact.
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)
