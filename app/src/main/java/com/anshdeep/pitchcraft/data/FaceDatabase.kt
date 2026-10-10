@@ -21,6 +21,7 @@ data class ScanStats(
     val faces: Int = 0,
     val people: Int = 0,
     val failed: Int = 0,
+    val visualIndexed: Int = 0,
     val running: Boolean = false,
     val current: String = "",
     val error: String? = null
@@ -29,7 +30,7 @@ data class ScanStats(
 }
 
 class FaceDatabase private constructor(context: Context) :
-    SQLiteOpenHelper(context, "pitchcraft.db", null, 1) {
+    SQLiteOpenHelper(context, "pitchcraft.db", null, 2) {
 
     private val appContext = context.applicationContext
 
@@ -41,9 +42,37 @@ class FaceDatabase private constructor(context: Context) :
         db.execSQL("CREATE INDEX idx_faces_media ON faces(media_id)")
         db.execSQL("CREATE TABLE favorites(media_id INTEGER PRIMARY KEY)")
         db.execSQL("CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT)")
+        db.execSQL("CREATE TABLE visual_index(media_id INTEGER PRIMARY KEY, ocr_text TEXT NOT NULL DEFAULT '', labels TEXT NOT NULL DEFAULT '', indexed_at INTEGER NOT NULL)")
     }
 
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        if (oldVersion < 2) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS visual_index(media_id INTEGER PRIMARY KEY, ocr_text TEXT NOT NULL DEFAULT '', labels TEXT NOT NULL DEFAULT '', indexed_at INTEGER NOT NULL)")
+        }
+    }
+
+    fun isVisualIndexed(mediaId: Long): Boolean =
+        readableDatabase.rawQuery("SELECT 1 FROM visual_index WHERE media_id=?", arrayOf(mediaId.toString()))
+            .use { it.moveToFirst() }
+
+    fun saveVisualIndex(mediaId: Long, ocrText: String, labels: List<String>) {
+        writableDatabase.execSQL(
+            "INSERT OR REPLACE INTO visual_index(media_id,ocr_text,labels,indexed_at) VALUES(?,?,?,?)",
+            arrayOf(mediaId, ocrText.trim(), labels.joinToString(" | "), System.currentTimeMillis())
+        )
+    }
+
+    fun searchVisualIndex(query: String): Set<Long> {
+        val clean = query.trim()
+        if (clean.isBlank()) return emptySet()
+        val ids = linkedSetOf<Long>()
+        val like = "%$clean%"
+        readableDatabase.rawQuery(
+            "SELECT media_id FROM visual_index WHERE ocr_text LIKE ? COLLATE NOCASE OR labels LIKE ? COLLATE NOCASE",
+            arrayOf(like, like)
+        ).use { c -> while (c.moveToNext()) ids += c.getLong(0) }
+        return ids
+    }
 
     fun isScanned(mediaId: Long): Boolean =
         readableDatabase.rawQuery("SELECT 1 FROM scanned WHERE media_id=?", arrayOf(mediaId.toString()))
@@ -210,12 +239,14 @@ class FaceDatabase private constructor(context: Context) :
         val failed = db.rawQuery("SELECT COUNT(*) FROM scanned WHERE status=0", null).use { it.moveToFirst(); it.getInt(0) }
         val faces = db.rawQuery("SELECT COUNT(*) FROM faces", null).use { it.moveToFirst(); it.getInt(0) }
         val people = db.rawQuery("SELECT COUNT(*) FROM people WHERE face_count>=2 AND hidden=0", null).use { it.moveToFirst(); it.getInt(0) }
+        val visualIndexed = db.rawQuery("SELECT COUNT(*) FROM visual_index", null).use { it.moveToFirst(); it.getInt(0) }
         return ScanStats(
             total = totalImages,
             scanned = scanned.coerceAtMost(totalImages),
             faces = faces,
             people = people,
             failed = failed,
+            visualIndexed = visualIndexed.coerceAtMost(totalImages),
             running = getMeta("scan_running") == "1",
             current = getMeta("scan_current") ?: "",
             error = getMeta("scan_error")
@@ -230,6 +261,7 @@ class FaceDatabase private constructor(context: Context) :
             db.execSQL("DELETE FROM people")
             db.execSQL("DELETE FROM scanned")
             db.execSQL("DELETE FROM meta")
+            db.execSQL("DELETE FROM visual_index")
             db.setTransactionSuccessful()
         } finally {
             db.endTransaction()
