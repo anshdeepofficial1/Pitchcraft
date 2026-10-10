@@ -29,7 +29,7 @@ class CrashActivity : FragmentActivity() {
     companion object {
         const val EXTRA_CRASH_REPORT = "crash_report"
         const val EXTRA_CRASH_LOG_PATH = "crash_log_path"
-        private const val GITHUB_ISSUES_URL = "https://github.com/Bn5prS/Photon_Gallery/issues/new"
+        private const val GITHUB_ISSUES_URL = "https://github.com/anshdeepofficial1/Pitchcraft/issues/new"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
