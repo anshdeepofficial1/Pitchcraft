@@ -35,9 +35,9 @@ class ModelDownloadWorker(
         private const val NOTIFICATION_ID = 55
         private const val CHANNEL_ID = "model_download_channel"
 
-        private const val TEXT_MODEL_URL = "https://raw.githubusercontent.com/Bn5prS/Photon_Gallery/master/models/text_model_quantized.onnx"
-        private const val VISION_MODEL_URL = "https://raw.githubusercontent.com/Bn5prS/Photon_Gallery/master/models/vision_model_quantized.onnx"
-        private const val TOKENIZER_URL = "https://raw.githubusercontent.com/Bn5prS/Photon_Gallery/master/models/tokenizer.json"
+        private const val TEXT_MODEL_URL = "https://raw.githubusercontent.com/Bn5prS/Photon_Gallery/main/models/text_model_quantized.onnx"
+        private const val VISION_MODEL_URL = "https://raw.githubusercontent.com/Bn5prS/Photon_Gallery/main/models/vision_model_quantized.onnx"
+        private const val TOKENIZER_URL = "https://raw.githubusercontent.com/Bn5prS/Photon_Gallery/main/models/tokenizer.json"
 
         private const val TEXT_MODEL_NAME = "text_model_quantized.onnx"
         private const val VISION_MODEL_NAME = "vision_model_quantized.onnx"
@@ -154,7 +154,7 @@ class ModelDownloadWorker(
 
                 val request = Request.Builder()
                     .url(url)
-                    .header("User-Agent", "PhotonGallery-ModelDownloader/2.0")
+                    .header("User-Agent", "Pitchcraft-ModelDownloader/1.0")
                     .build()
 
                 val response = client.newCall(request).execute()
