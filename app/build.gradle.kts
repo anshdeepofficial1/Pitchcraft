@@ -78,15 +78,6 @@ android {
 
 }
 
-androidComponents {
-    onVariants { variant ->
-        variant.outputs.forEach { output ->
-            val abi = output.filters.find { it.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI }?.identifier ?: "universal"
-            output.outputFileName.set("Pitchcraft-$abi.apk")
-        }
-    }
-}
-
 room {
     schemaDirectory("$projectDir/schemas")
 }
