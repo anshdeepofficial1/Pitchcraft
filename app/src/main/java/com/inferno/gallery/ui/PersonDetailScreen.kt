@@ -78,6 +78,7 @@ fun PersonDetailScreen(
     val people by viewModel.people.collectAsState()
     val media by viewModel.personMedia.collectAsState()
     val faces by viewModel.personFaces.collectAsState()
+    val favoriteIds by viewModel.favoriteIds.collectAsState()
     val person = people.firstOrNull { it.clusterId == clusterId }
     val context = LocalContext.current
 
@@ -591,15 +592,15 @@ fun PersonDetailScreen(
             }
 
             gridItems(media, key = { it.id }) { item ->
-                AsyncImage(
-                    model = item.resolvedUri,
-                    contentDescription = item.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(10.dp))
-                        .clickable { onPhotoClick(item.id, null, null) }
+                ReferencePhotoCard(
+                    item = item,
+                    modifier = Modifier.fillMaxWidth().height(206.dp),
+                    overline = if (item.isVideo) "VIDEO" else "PHOTO",
+                    selected = false,
+                    isFavorite = item.id in favoriteIds,
+                    onToggleFavorite = { viewModel.toggleFavorite(item.id) },
+                    onClick = { onPhotoClick(item.id, null, null) },
+                    onLongClick = { viewModel.toggleSelection(item.uri.toString()) }
                 )
             }
 
