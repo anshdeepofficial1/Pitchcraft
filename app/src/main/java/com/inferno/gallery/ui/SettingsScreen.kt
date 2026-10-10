@@ -1643,7 +1643,7 @@ fun SettingsScreen(
                                             contentAlignment = Alignment.Center
                                         ) {
                                             androidx.compose.foundation.Image(
-                                                painter = painterResource(id = R.drawable.pitchcraft_logo_foreground),
+                                                painter = painterResource(id = R.drawable.pitchcraft_mark),
                                                 contentDescription = "Pitchcraft Logo",
                                                 modifier = Modifier
                                                     .size(68.dp)
