@@ -1,5 +1,7 @@
 package com.inferno.gallery.ui
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -125,12 +127,19 @@ fun PersonStoryScreen(
             .fillMaxSize()
             .background(ReferencePalette.Black)
     ) {
-        AsyncImage(
-            model = current.resolvedUri,
-            contentDescription = current.name,
-            contentScale = ContentScale.Fit,
+        Crossfade(
+            targetState = current.resolvedUri,
+            animationSpec = tween(durationMillis = 330),
+            label = "Person story photo crossfade",
             modifier = Modifier.fillMaxSize()
-        )
+        ) { imageUri ->
+            AsyncImage(
+                model = imageUri,
+                contentDescription = current.name,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
 
         Box(
             modifier = Modifier.fillMaxWidth().fillMaxHeight(0.30f)
