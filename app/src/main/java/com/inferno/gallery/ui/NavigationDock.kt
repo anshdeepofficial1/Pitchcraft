@@ -74,7 +74,8 @@ fun FloatingNavigationPill(
     onNavigateToSearch: () -> Unit,
     modifier: Modifier = Modifier,
     onNavigateToFavorites: () -> Unit = {},
-    onNavigateToSettings: () -> Unit = {}
+    onNavigateToSettings: () -> Unit = {},
+    onCentralAction: () -> Unit = {}
 ) {
     Box(
         modifier = modifier
@@ -115,7 +116,7 @@ fun FloatingNavigationPill(
                     .size(42.dp)
                     .clip(androidx.compose.foundation.shape.CircleShape)
                     .background(Color(0xFFFFF7EC))
-                    .clickable(onClick = onNavigateToPhotos),
+                     .clickable(onClick = onCentralAction),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
