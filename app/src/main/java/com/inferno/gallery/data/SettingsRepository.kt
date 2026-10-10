@@ -93,6 +93,22 @@ class SettingsRepository private constructor(private val context: Context) {
         val TERTIARY_COLOR_OVERRIDE = intPreferencesKey("tertiary_color_override")   // -1 = auto (derived from seed)
         val CONTRAST_PRESET = stringPreferencesKey("contrast_preset")               // "Reduced" | "Default" | "Medium" | "High"
         val ANIMATE_THEME_TRANSITIONS = booleanPreferencesKey("animate_theme_transitions")
+        val LOCAL_USER_NAME = stringPreferencesKey("local_user_name")
+        val LOCAL_USER_IMAGE_URI = stringPreferencesKey("local_user_image_uri")
+    }
+
+    val localUserNameFlow: Flow<String> = context.dataStore.data
+        .map { preferences -> preferences[LOCAL_USER_NAME] ?: "Gallery owner" }
+
+    val localUserImageUriFlow: Flow<String?> = context.dataStore.data
+        .map { preferences -> preferences[LOCAL_USER_IMAGE_URI]?.takeIf { it.isNotBlank() } }
+
+    suspend fun updateLocalUserProfile(name: String, imageUri: String?) {
+        context.dataStore.edit { preferences ->
+            preferences[LOCAL_USER_NAME] = name.trim().ifBlank { "Gallery owner" }
+            if (imageUri.isNullOrBlank()) preferences.remove(LOCAL_USER_IMAGE_URI)
+            else preferences[LOCAL_USER_IMAGE_URI] = imageUri
+        }
     }
 
     val albumsExpandedPinnedFlow: Flow<Boolean> = context.dataStore.data

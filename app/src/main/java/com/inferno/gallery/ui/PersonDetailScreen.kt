@@ -41,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -366,6 +367,7 @@ fun PersonDetailScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         topBar = {
             TopAppBar(
                 title = { Text(person?.name ?: "Person", fontWeight = FontWeight.Bold) },
@@ -374,6 +376,7 @@ fun PersonDetailScreen(
                         Text("‹", style = MaterialTheme.typography.headlineMedium)
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
                 actions = {
                     Box {
                         IconButton(onClick = { menuExpanded = true }) {
@@ -449,11 +452,11 @@ fun PersonDetailScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(38.dp),
-                        shadowElevation = 10.dp,
+                        shape = RoundedCornerShape(32.dp),
+                        shadowElevation = 16.dp,
                         tonalElevation = 3.dp,
                         color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        modifier = Modifier.size(232.dp)
+                        modifier = Modifier.fillMaxWidth().height(310.dp)
                     ) {
                         AsyncImage(
                             model = person?.coverCropPath?.let { File(it) },
@@ -487,6 +490,34 @@ fun PersonDetailScreen(
                     )
 
                     Spacer(Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(
+                            "${media.size}" to "Photos",
+                            "${faces.size}" to "Faces",
+                            (person?.relation ?: "Add") to "Relation"
+                        ).forEach { (value, label) ->
+                            Surface(
+                                shape = RoundedCornerShape(18.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Column(
+                                    Modifier.padding(vertical = 12.dp, horizontal = 8.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(14.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),

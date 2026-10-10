@@ -23,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -47,6 +48,7 @@ fun AllPeopleScreen(
     val progress by viewModel.faceProgress.collectAsState()
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         topBar = {
             TopAppBar(
                 title = {
@@ -59,6 +61,7 @@ fun AllPeopleScreen(
                         )
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Text("‹", style = MaterialTheme.typography.headlineMedium)
@@ -68,12 +71,18 @@ fun AllPeopleScreen(
         }
     ) { padding ->
         LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
+            columns = GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(14.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                    Text("Your people", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    Text("Private face groups created on this device", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
             if (progress.isIndexing) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Surface(
@@ -122,9 +131,10 @@ fun AllPeopleScreen(
                         shape = RoundedCornerShape(24.dp),
                         shadowElevation = 4.dp,
                         tonalElevation = 2.dp,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(0.9f)
+                            .aspectRatio(0.82f)
                     ) {
                         AsyncImage(
                             model = person.coverCropPath?.let { File(it) },

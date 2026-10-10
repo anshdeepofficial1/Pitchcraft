@@ -58,6 +58,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -142,6 +144,7 @@ import com.inferno.gallery.data.SettingsRepository
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.res.painterResource
 import com.inferno.gallery.R
+import coil3.compose.AsyncImage
 
 private fun pitchcraftGreeting(): String = when (java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)) {
     in 5..11 -> "Good morning"
@@ -192,6 +195,17 @@ fun MainAppLayout(
 
     val context = LocalContext.current
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val localUserName by viewModel.settingsRepository.localUserNameFlow.collectAsState(initial = "Gallery owner")
+    val localUserImageUri by viewModel.settingsRepository.localUserImageUriFlow.collectAsState(initial = null)
+    var showLocalProfileDialog by remember { mutableStateOf(false) }
+    var localProfileNameDraft by remember(localUserName) { mutableStateOf(localUserName) }
+    var localProfileImageDraft by remember(localUserImageUri) { mutableStateOf(localUserImageUri) }
+    val profileImagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            runCatching { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+            localProfileImageDraft = uri.toString()
+        }
+    }
 
     var selectedUrisToDelete by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var showTrashRestoreConfirmDialog by remember { mutableStateOf(false) }
@@ -433,6 +447,48 @@ fun MainAppLayout(
         label = "topBarColor"
     )
 
+    if (showLocalProfileDialog) {
+        AlertDialog(
+            onDismissRequest = { showLocalProfileDialog = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = RoundedCornerShape(28.dp),
+            title = { Text("Your local profile", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Surface(
+                        onClick = { profileImagePicker.launch(arrayOf("image/*")) },
+                        modifier = Modifier.size(92.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                    ) {
+                        if (localProfileImageDraft != null) {
+                            AsyncImage(model = localProfileImageDraft, contentDescription = "Profile photo", modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+                        } else {
+                            Image(painter = painterResource(R.mipmap.ic_launcher), contentDescription = "Choose profile photo", modifier = Modifier.padding(12.dp))
+                        }
+                    }
+                    Text("Tap the photo to change it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    TextField(
+                        value = localProfileNameDraft,
+                        onValueChange = { localProfileNameDraft = it },
+                        label = { Text("Your name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text("Stored only on this device. No account or login.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    coroutineScope.launch { viewModel.settingsRepository.updateLocalUserProfile(localProfileNameDraft, localProfileImageDraft) }
+                    showLocalProfileDialog = false
+                }) { Text("Save profile") }
+            },
+            dismissButton = { TextButton(onClick = { showLocalProfileDialog = false }) { Text("Cancel") } }
+        )
+    }
+
     Scaffold(
             modifier = modifier.fillMaxSize(),
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -614,21 +670,26 @@ fun MainAppLayout(
                                         modifier = Modifier.weight(1f)
                                     ) {
                                         Surface(
+                                            onClick = {
+                                                localProfileNameDraft = localUserName
+                                                localProfileImageDraft = localUserImageUri
+                                                showLocalProfileDialog = true
+                                            },
                                             modifier = Modifier
                                                 .size(44.dp)
                                                 .border(1.dp, Color(0xFFFFB45E).copy(alpha = 0.55f), CircleShape),
                                             shape = CircleShape,
                                             color = Color(0xFF2A1608)
                                         ) {
-                                            Image(
-                                                painter = painterResource(R.mipmap.ic_launcher),
-                                                contentDescription = "Pitchcraft profile",
-                                                modifier = Modifier.padding(5.dp)
-                                            )
+                                            if (localUserImageUri != null) {
+                                                AsyncImage(model = localUserImageUri, contentDescription = "Local profile", modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+                                            } else {
+                                                Image(painter = painterResource(R.mipmap.ic_launcher), contentDescription = "Pitchcraft profile", modifier = Modifier.padding(5.dp))
+                                            }
                                         }
                                         Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                                             Text(
-                                                text = "Anshdeep",
+                                                text = localUserName,
                                                 style = MaterialTheme.typography.titleMedium,
                                                 fontWeight = FontWeight.Bold,
                                                 color = Color.White

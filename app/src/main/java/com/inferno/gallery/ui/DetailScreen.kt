@@ -324,6 +324,79 @@ fun DetailScreen(
     var showMoreMenu by remember { mutableStateOf(false) }
     var showCopySheet by remember { mutableStateOf(false) }
     var showMoveSheet by remember { mutableStateOf(false) }
+    var showSlideshowOptions by remember { mutableStateOf(false) }
+    var slideshowRunning by remember { mutableStateOf(false) }
+    var slideshowShuffle by remember { mutableStateOf(false) }
+    var slideshowRepeat by remember { mutableStateOf(true) }
+    var slideshowIntervalMs by remember { mutableStateOf(4000L) }
+
+    LaunchedEffect(slideshowRunning, slideshowIntervalMs, slideshowShuffle, slideshowRepeat, galleryItems.size) {
+        while (slideshowRunning && galleryItems.size > 1) {
+            kotlinx.coroutines.delay(slideshowIntervalMs)
+            val nextPage = when {
+                slideshowShuffle -> {
+                    val choices = galleryItems.indices.filter { it != pagerState.currentPage }
+                    choices.randomOrNull() ?: pagerState.currentPage
+                }
+                pagerState.currentPage < galleryItems.lastIndex -> pagerState.currentPage + 1
+                slideshowRepeat -> 0
+                else -> {
+                    slideshowRunning = false
+                    pagerState.currentPage
+                }
+            }
+            if (slideshowRunning && nextPage != pagerState.currentPage) {
+                pagerState.animateScrollToPage(nextPage)
+                showUi = false
+            }
+        }
+    }
+
+    if (showSlideshowOptions) {
+        AlertDialog(
+            onDismissRequest = { showSlideshowOptions = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = RoundedCornerShape(28.dp),
+            title = { Text("Slideshow studio", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text("Choose how your memories play.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Timing", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(2000L to "2s", 4000L to "4s", 7000L to "7s").forEach { (value, label) ->
+                            Surface(
+                                onClick = { slideshowIntervalMs = value },
+                                shape = CircleShape,
+                                color = if (slideshowIntervalMs == value) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest
+                            ) {
+                                Text(label, modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp), color = if (slideshowIntervalMs == value) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface)
+                            }
+                        }
+                    }
+                    Surface(onClick = { slideshowShuffle = !slideshowShuffle }, shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainerHighest) {
+                        Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Shuffle photos")
+                            Text(if (slideshowShuffle) "ON" else "OFF", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    Surface(onClick = { slideshowRepeat = !slideshowRepeat }, shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainerHighest) {
+                        Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Repeat continuously")
+                            Text(if (slideshowRepeat) "ON" else "OFF", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showSlideshowOptions = false
+                    slideshowRunning = true
+                    showUi = false
+                }) { Text("Start slideshow") }
+            },
+            dismissButton = { TextButton(onClick = { showSlideshowOptions = false }) { Text("Cancel") } }
+        )
+    }
 
     val renameLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
@@ -1184,6 +1257,14 @@ fun DetailScreen(
                             shape = MaterialTheme.shapes.large,
                             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                         ) {
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text(if (slideshowRunning) "Pause slideshow" else "Slideshow") },
+                                leadingIcon = { Icon(ImageVector.vectorResource(if (slideshowRunning) R.drawable.ic_ms_pause else R.drawable.ic_ms_play_arrow), contentDescription = null) },
+                                onClick = {
+                                    showMoreMenu = false
+                                    if (slideshowRunning) slideshowRunning = false else showSlideshowOptions = true
+                                }
+                            )
                             if (currentItem != null) {
                                 androidx.compose.material3.DropdownMenuItem(
                                     text = { Text("Open with") },
@@ -1356,6 +1437,17 @@ fun DetailScreen(
                             }
 
                         } else {
+                            IconButton(
+                                onClick = {
+                                    if (slideshowRunning) slideshowRunning = false else showSlideshowOptions = true
+                                },
+                                enabled = galleryItems.size > 1
+                            ) {
+                                Icon(
+                                    ImageVector.vectorResource(if (slideshowRunning) R.drawable.ic_ms_pause else R.drawable.ic_ms_play_arrow),
+                                    contentDescription = if (slideshowRunning) "Pause slideshow" else "Start slideshow"
+                                )
+                            }
                             IconButton(
                                 onClick = {
                                     val item = currentItem
