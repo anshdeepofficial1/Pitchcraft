@@ -91,13 +91,9 @@ fun PermissionOnboardingScreen(
 ) {
     val haptic = LocalHapticFeedback.current
 
-    val allGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        photosGranted && videosGranted && allFilesGranted
-    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        photosGranted && allFilesGranted
-    } else {
-        photosGranted
-    }
+    // One gallery permission choice: Android combines image/video runtime access.
+    // Full file management is optional and can be enabled later when needed.
+    val mediaGranted = (photosGranted && videosGranted) || allFilesGranted
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -162,7 +158,7 @@ fun PermissionOnboardingScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Pitchcraft keeps your library, people and search index private on this device. Grant access to begin.",
+                    text = "Your memories stay private on this device. Allow gallery access to get started.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -171,65 +167,56 @@ fun PermissionOnboardingScreen(
 
                 Spacer(modifier = Modifier.height(28.dp))
 
-                // Single Tonal Permissions Card with Thin Divider Lines
                 Surface(
-                    shape = ShapeLarge,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.78f),
+                    shape = RoundedCornerShape(27.dp),
+                    color = ReferencePalette.SoftCard,
                     border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        MaterialTheme.colorScheme.outline.copy(alpha = 0.42f)
+                        1.dp, ReferencePalette.Outline
                     ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        PermissionBlockItem(
-                            title = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) "Photos Access" else "Storage Access",
-                            subtitle = "Required to display and organize your images",
-                            isGranted = photosGranted,
-                            icon = ImageVector.vectorResource(R.drawable.ic_ms_image),
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onGrantMediaClick()
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(18.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(15.dp)
+                    ) {
+                        Surface(
+                            color = ReferencePalette.Espresso,
+                            shape = RoundedCornerShape(17.dp),
+                            modifier = Modifier.size(50.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = ImageVector.vectorResource(R.drawable.ic_ms_image),
+                                    contentDescription = null,
+                                    tint = ReferencePalette.AmberBright,
+                                    modifier = Modifier.size(25.dp)
+                                )
                             }
+                        }
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                "Photo & video library",
+                                color = ReferencePalette.Cream,
+                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                if (mediaGranted) "Access ready • Stored locally"
+                                else "One step to see your photos and videos",
+                                color = ReferencePalette.Secondary,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        Icon(
+                            imageVector = ImageVector.vectorResource(
+                                if (mediaGranted) R.drawable.ic_ms_check_circle
+                                else R.drawable.ic_ms_folder
+                            ),
+                            contentDescription = if (mediaGranted) "Allowed" else "Permission needed",
+                            tint = if (mediaGranted) ReferencePalette.AmberBright else ReferencePalette.Secondary,
+                            modifier = Modifier.size(23.dp)
                         )
-
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                                thickness = 0.75.dp,
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
-
-                            PermissionBlockItem(
-                                title = "Videos Access",
-                                subtitle = "Required to play and manage your video library",
-                                isGranted = videosGranted,
-                                icon = ImageVector.vectorResource(R.drawable.ic_ms_movie),
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    onGrantMediaClick()
-                                }
-                            )
-                        }
-
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                                thickness = 0.75.dp,
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
-
-                            PermissionBlockItem(
-                                title = "All Files Access",
-                                subtitle = "Required for folder operations and private space",
-                                isGranted = allFilesGranted,
-                                icon = ImageVector.vectorResource(R.drawable.ic_ms_folder),
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    onGrantAllFilesClick()
-                                }
-                            )
-                        }
                     }
                 }
 
@@ -245,15 +232,7 @@ fun PermissionOnboardingScreen(
                 Button(
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        if (allGranted) {
-                            onContinueClick()
-                        } else {
-                            if (!photosGranted || !videosGranted) {
-                                onGrantMediaClick()
-                            } else {
-                                onGrantAllFilesClick()
-                            }
-                        }
+                        if (mediaGranted) onContinueClick() else onGrantMediaClick()
                     },
                     shape = ShapeFull,
                     colors = ButtonDefaults.buttonColors(
@@ -266,7 +245,7 @@ fun PermissionOnboardingScreen(
                         .pressScale()
                 ) {
                     Text(
-                        text = if (allGranted) "Continue to Gallery" else "Grant Permissions",
+                        text = if (mediaGranted) "Enter Gallery" else "Allow Gallery Access",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                 }
