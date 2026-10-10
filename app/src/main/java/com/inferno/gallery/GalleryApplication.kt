@@ -30,7 +30,15 @@ class GalleryApplication : Application(), SingletonImageLoader.Factory, androidx
             .build()
     override fun onCreate() {
         super.onCreate()
-        // Install global crash handler — must be first to catch startup crashes
+
+        // CrashActivity runs in a dedicated :crash process. Do not initialize
+        // WorkManager, databases or background jobs there or a startup crash can
+        // recursively crash the crash-report process itself.
+        if (android.app.Application.getProcessName() != packageName) {
+            return
+        }
+
+        // Install global crash handler only in the main app process.
         com.inferno.gallery.crash.CrashHandler.install(this)
         // Chain: MediaStore sync → OCR indexing (OCR must wait for sync to populate the DB)
         val syncWorkRequest = OneTimeWorkRequestBuilder<MediaSyncWorker>()
@@ -41,7 +49,10 @@ class GalleryApplication : Application(), SingletonImageLoader.Factory, androidx
             .build()
 
         val settingsRepo = SettingsRepository.getInstance(this)
-        kotlinx.coroutines.MainScope().launch {
+        val startupExceptionHandler = kotlinx.coroutines.CoroutineExceptionHandler { _, throwable ->
+            android.util.Log.e("GalleryApplication", "Non-fatal startup scheduling error", throwable)
+        }
+        kotlinx.coroutines.MainScope().launch(startupExceptionHandler) {
             val ocrEnabled = settingsRepo.ocrIndexingEnabledFlow.first()
 
             if (ocrEnabled) {
