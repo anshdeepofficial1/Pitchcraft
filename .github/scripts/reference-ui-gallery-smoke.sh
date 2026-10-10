@@ -76,3 +76,23 @@ if [ -z "$(adb shell pidof "$PACKAGE" | tr -d '\r')" ]; then
 fi
 echo "Reference photo-card design screenshot captured."
 
+# Smoke-navigation uses the same interactive dock/chips as a person.
+tap_normalized() {
+  local fx="$1" fy="$2"
+  adb shell input tap "$(( WIDTH * fx / 100 ))" "$(( HEIGHT * fy / 100 ))"
+  sleep 4
+  test -n "$(adb shell pidof "$PACKAGE" | tr -d '\r')"
+}
+tap_normalized 32 93
+adb exec-out screencap -p > pitchcraft-albums-reference.png
+tap_normalized 65 93
+adb exec-out screencap -p > pitchcraft-search-reference.png
+tap_normalized 17 93
+tap_normalized 62 15
+adb exec-out screencap -p > pitchcraft-people-reference.png
+adb shell input keyevent KEYCODE_BACK
+sleep 3
+test -n "$(adb shell pidof "$PACKAGE" | tr -d '\r')"
+echo "Photos / Albums / Search / People navigation survived."
+
+
