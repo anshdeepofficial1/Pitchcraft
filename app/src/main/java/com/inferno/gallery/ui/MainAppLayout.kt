@@ -842,13 +842,12 @@ fun MainAppLayout(
                                 }
                             }
                             if (currentRoute == "photos") {
-                                MorphingVariableTabRow(
-                                    tabs = listOf("All Photos", "Camera"),
-                                    selectedTabIndex = if (selectedFilter == 1) 1 else 0,
-                                    onTabSelected = { index -> viewModel.setFilterIndex(if (index == 1) 1 else 0) },
-                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
-                                    fontSize = 13.sp,
-                                    lineHeight = 18.sp
+                                ReferenceFilterTabs(
+                                    selectedFilter = if (selectedFilter == 1) 1 else 0,
+                                    onSelectFilter = { viewModel.setFilterIndex(it) },
+                                    onAlbumsClick = { nestedNavController.navigate("albums") { launchSingleTop = true } },
+                                    onPeopleClick = { nestedNavController.navigate("all_people") { launchSingleTop = true } },
+                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
                                 )
                             }
                             }
@@ -859,96 +858,56 @@ fun MainAppLayout(
         },
         bottomBar = {
             val isHiddenAlbum = currentRoute?.startsWith("album/") == true
-            // Pill dock auto-hide on scroll temporarily disabled per user request (preserved for later revival)
-            // val isDockVisible = currentRoute != "settings" && currentRoute != "duplicate_cleaner" && currentRoute != "photo_map" && currentRoute != "all_albums" && currentRoute != "story_viewer" && currentRoute != "places_list" && !isHiddenAlbum && !isSelectionMode && (dockStyle != DockStyle.PILL || isScrollDockVisible)
-            val isDockVisible = currentRoute != "settings" && currentRoute != "duplicate_cleaner" && currentRoute != "photo_map" && currentRoute != "all_albums" && currentRoute != "story_viewer" && currentRoute != "places_list" && !isHiddenAlbum && !isSelectionMode
+            val isDockVisible = currentRoute != "settings" &&
+                currentRoute != "duplicate_cleaner" &&
+                currentRoute != "photo_map" &&
+                currentRoute != "all_albums" &&
+                currentRoute != "story_viewer" &&
+                currentRoute != "places_list" &&
+                currentRoute != "all_people" &&
+                currentRoute != "people_processing" &&
+                !isHiddenAlbum && !isSelectionMode
             AnimatedVisibility(
                 visible = isDockVisible,
                 enter = slideInVertically(initialOffsetY = { it }),
                 exit = slideOutVertically(targetOffsetY = { it })
             ) {
-                if (dockStyle == DockStyle.PILL) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(bottom = 6.dp),
-                        contentAlignment = Alignment.BottomCenter
-                    ) {
-                        FloatingNavigationPill(
-                            currentRoute = currentRoute,
-                            onNavigateToPhotos = {
-                                nestedNavController.navigate("photos") {
-                                    popUpTo("photos") { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            onNavigateToAlbums = {
-                                nestedNavController.navigate("albums") {
-                                    popUpTo("photos") { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            onNavigateToSearch = {
-                                nestedNavController.navigate("search") {
-                                    popUpTo("photos") { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(bottom = 7.dp),
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    FloatingNavigationPill(
+                        currentRoute = currentRoute,
+                        onNavigateToPhotos = {
+                            nestedNavController.navigate("photos") {
+                                popUpTo("photos") { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
                             }
-                        )
-                    }
-                } else {
-                    androidx.compose.material3.Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .pointerInput(Unit) {},
-                        color = MaterialTheme.colorScheme.surfaceContainer,
-                        tonalElevation = 0.dp
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .navigationBarsPadding()
-                                .height(50.dp)
-                                .padding(horizontal = 6.dp),
-                            horizontalArrangement = Arrangement.SpaceAround,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            DockItem(
-                                icon = { Icon(if (currentRoute == "photos") ImageVector.vectorResource(R.drawable.ic_ms_image) else ImageVector.vectorResource(R.drawable.ic_ms_image), contentDescription = "Photos", modifier = Modifier.size(24.dp)) },
-                                label = "Photos",
-                                isSelected = currentRoute == "photos",
-                                onClick = { nestedNavController.navigate("photos") {
-                                    popUpTo("photos") { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                } }
-                            )
-                            DockItem(
-                                icon = { Icon(if (currentRoute?.startsWith("album") == true || currentRoute == "albums") ImageVector.vectorResource(R.drawable.ic_ms_photo_album) else ImageVector.vectorResource(R.drawable.ic_ms_photo_album), contentDescription = "Albums", modifier = Modifier.size(24.dp)) },
-                                label = "Albums",
-                                isSelected = currentRoute?.startsWith("album") == true || currentRoute == "albums",
-                                onClick = { nestedNavController.navigate("albums") {
-                                    popUpTo("photos") { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                } }
-                            )
-                            DockItem(
-                                icon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_ms_search), contentDescription = "Search", modifier = Modifier.size(24.dp)) },
-                                label = "Search",
-                                isSelected = currentRoute == "search",
-                                onClick = { nestedNavController.navigate("search") {
-                                    popUpTo("photos") { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                } }
-                            )
+                        },
+                        onNavigateToAlbums = {
+                            nestedNavController.navigate("albums") {
+                                popUpTo("photos") { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        onNavigateToSearch = {
+                            nestedNavController.navigate("search") {
+                                popUpTo("photos") { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        onNavigateToFavorites = {
+                            nestedNavController.navigate("album/Favorites") {
+                                launchSingleTop = true
+                            }
                         }
-                    }
+                    )
                 }
             }
         }
