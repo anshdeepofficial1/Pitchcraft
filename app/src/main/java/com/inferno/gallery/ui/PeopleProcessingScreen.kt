@@ -1,5 +1,6 @@
 package com.inferno.gallery.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,6 +37,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -56,22 +60,26 @@ fun PeopleProcessingScreen(
     } else 0f
 
     Scaffold(
+        containerColor = ReferencePalette.Black,
         topBar = {
             TopAppBar(
                 title = {
                     Column {
-                        Text("People processing", fontWeight = FontWeight.Bold)
+                        Text("Your people", fontWeight = FontWeight.SemiBold, color = ReferencePalette.Cream)
                         Text(
                             if (progress.isIndexing) progress.stage.ifBlank { "Detecting & grouping" }
                             else progress.stage.ifBlank { "Ready" },
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = ReferencePalette.Secondary
                         )
                     }
                 },
+                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                    containerColor = ReferencePalette.Espresso, navigationIconContentColor = ReferencePalette.Cream
+                ),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Text("‹", style = MaterialTheme.typography.headlineMedium)
+                        Text("‹", style = MaterialTheme.typography.headlineMedium, color = ReferencePalette.Cream)
                     }
                 }
             )
@@ -79,24 +87,28 @@ fun PeopleProcessingScreen(
     ) { padding ->
         LazyVerticalGrid(
             columns = GridCells.Fixed(3),
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier.fillMaxSize().background(
+                Brush.verticalGradient(listOf(ReferencePalette.Espresso, ReferencePalette.Black))
+            ).padding(padding),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Surface(
-                    shape = RoundedCornerShape(28.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shadowElevation = 5.dp
+                    shape = RoundedCornerShape(29.dp),
+                    color = ReferencePalette.SoftCard,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, ReferencePalette.Outline),
+                    shadowElevation = 0.dp
                 ) {
                     Column(Modifier.padding(20.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
                                 Text(
-                                    if (progress.isIndexing) "Detecting & grouping" else "People scan",
+                                    if (progress.isIndexing) "Finding familiar faces" else "People collection",
                                     style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold
+                                    color = ReferencePalette.Cream,
+                                    fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
                                     "${progress.progress} of ${progress.total} images processed",
@@ -107,13 +119,15 @@ fun PeopleProcessingScreen(
                                 "${(fraction * 100).toInt()}%",
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = ReferencePalette.AmberBright
                             )
                         }
                         Spacer(Modifier.height(14.dp))
                         LinearProgressIndicator(
                             progress = { fraction },
-                            modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(99.dp))
+                            modifier = Modifier.fillMaxWidth().height(7.dp).clip(CircleShape),
+                            color = ReferencePalette.AmberBright,
+                            trackColor = ReferencePalette.Espresso
                         )
                         Spacer(Modifier.height(14.dp))
                         Row(
@@ -193,9 +207,11 @@ fun PeopleProcessingScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(22.dp),
-                        shadowElevation = 3.dp,
-                        modifier = Modifier.fillMaxWidth().aspectRatio(0.92f)
+                        shape = CircleShape,
+                        color = ReferencePalette.Espresso,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, ReferencePalette.Outline),
+                        shadowElevation = 0.dp,
+                        modifier = Modifier.fillMaxWidth().aspectRatio(1f)
                     ) {
                         AsyncImage(
                             model = person.coverCropPath?.let { File(it) },
