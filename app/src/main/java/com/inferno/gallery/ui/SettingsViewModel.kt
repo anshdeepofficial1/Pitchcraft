@@ -406,6 +406,23 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
 
+    val autoMlProcessing: StateFlow<Boolean> = repository.autoMlProcessingFlow.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = false
+    )
+
+    fun setAutoMlProcessing(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.updateAutoMlProcessing(enabled)
+            if (!enabled) {
+                WorkManager.getInstance(getApplication()).cancelUniqueWork("OcrIndexWorker")
+                WorkManager.getInstance(getApplication()).cancelUniqueWork("FaceIndexWorker")
+                WorkManager.getInstance(getApplication()).cancelUniqueWork("SmartSearchIndexWorker")
+            }
+        }
+    }
+
     val faceIndexingEnabled: StateFlow<Boolean> = repository.faceIndexingEnabledFlow.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -416,7 +433,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         repository.processingPerformanceFlow.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = com.inferno.gallery.data.ProcessingPerformance.MAX
+            initialValue = com.inferno.gallery.data.ProcessingPerformance.BALANCED
         )
 
     val faceProgress = com.inferno.gallery.data.IndexingProgressManager.faceProgress
