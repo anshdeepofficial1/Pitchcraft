@@ -45,6 +45,11 @@ jobs:
             echo "::error::Destructive database fallback is forbidden"
             exit 1
           fi
+      - name: Enable hardware acceleration for Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
       - name: Fresh install and no-media startup smoke test (Android 15)
         uses: reactivecircus/android-emulator-runner@v2
         with:
