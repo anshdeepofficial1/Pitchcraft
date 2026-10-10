@@ -22,6 +22,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 class OcrIndexWorker(
@@ -154,8 +155,14 @@ class OcrIndexWorker(
 
             val db = DatabaseProvider.getDatabase(applicationContext)
 
+            val excludedFolders = com.inferno.gallery.data.SettingsRepository
+                .getInstance(applicationContext)
+                .excludedFoldersFlow
+                .first()
+
             val unindexed = withContext(Dispatchers.IO) {
                 db.mediaDao().getUnindexedOcrMedia()
+                    .filterNot { excludedFolders.contains(it.bucketName) }
             }
 
             if (unindexed.isEmpty()) {
@@ -164,9 +171,10 @@ class OcrIndexWorker(
             }
 
             val totalImageCount = withContext(Dispatchers.IO) {
-                db.mediaDao().getTotalImageCount()
+                db.mediaDao().getAllMedia()
+                    .count { !it.isVideo && it.bucketName != "Trash" && !excludedFolders.contains(it.bucketName) }
             }
-            val alreadyIndexed = totalImageCount - unindexed.size
+            val alreadyIndexed = (totalImageCount - unindexed.size).coerceAtLeast(0)
             var processedCount = 0
             val recentUris = ArrayDeque<String>(5)
 
@@ -315,11 +323,19 @@ class OcrIndexWorker(
             return Result.retry()
         } finally {
             val db = DatabaseProvider.getDatabase(applicationContext)
-            val total = runCatching { db.mediaDao().getTotalImageCount() }.getOrDefault(0)
-            val unindexed = runCatching { db.mediaDao().getUnindexedImageCount() }.getOrDefault(0)
+            val excluded = runCatching {
+                com.inferno.gallery.data.SettingsRepository.getInstance(applicationContext)
+                    .excludedFoldersFlow.first()
+            }.getOrDefault(emptySet())
+            val total = runCatching {
+                db.mediaDao().getAllMedia().count { !it.isVideo && it.bucketName != "Trash" && !excluded.contains(it.bucketName) }
+            }.getOrDefault(0)
+            val unindexed = runCatching {
+                db.mediaDao().getUnindexedOcrMedia().count { !excluded.contains(it.bucketName) }
+            }.getOrDefault(0)
             com.inferno.gallery.data.IndexingProgressManager.updateOcrProgress(
                 isIndexing = false,
-                progress = total - unindexed,
+                progress = (total - unindexed).coerceAtLeast(0),
                 total = total,
                 currentImageName = null
             )
