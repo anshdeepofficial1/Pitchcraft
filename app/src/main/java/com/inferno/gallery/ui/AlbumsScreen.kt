@@ -192,7 +192,9 @@ fun AlbumsScreen(
         ),
         verticalArrangement = Arrangement.spacedBy(SpacingTokens.L),
         horizontalArrangement = Arrangement.spacedBy(SpacingTokens.M),
-        modifier = modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize().background(
+            Brush.verticalGradient(listOf(ReferencePalette.Espresso, ReferencePalette.Black))
+        )
     ) {
 
         // ── 1. Pinned albums ──
@@ -210,7 +212,7 @@ fun AlbumsScreen(
                 items(
                     items = visiblePinned,
                     key = { "pinned_${it.bucketName}" },
-                    span = { GridItemSpan(4) }
+                    span = { GridItemSpan(6) }
                 ) { bucket ->
                     val displayBucketName = when (bucket.bucketName) {
                         "Screenrecordings", "Screenrecords", "ScreenRecord" -> "Screen recordings"
@@ -932,22 +934,20 @@ fun AlbumCard(
     onLongPress: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
-
     val request = remember<ImageRequest>(bucket.coverUri) {
         ImageRequest.Builder(context)
             .data(bucket.coverUri)
-            .size(Size(360, 360))
-            .precision(Precision.EXACT)
+            .size(Size(480, 640))
+            .precision(Precision.INEXACT)
             .crossfade(false)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
             .build()
     }
-
     val sharedBoundsModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
         with(sharedTransitionScope) {
             Modifier.sharedBounds(
-                sharedContentState = rememberSharedContentState(key = "album_${bucket.bucketName}"),
+                sharedContentState = rememberSharedContentState(key = "album_" + bucket.bucketName),
                 animatedVisibilityScope = animatedVisibilityScope,
                 enter = fadeIn(animationSpec = MotionTokens.snappySpring()),
                 exit = fadeOut(animationSpec = MotionTokens.snappySpring()),
@@ -956,127 +956,103 @@ fun AlbumCard(
                 boundsTransform = { _, _ -> MotionTokens.sharedElementSpring() }
             )
         }
-    } else {
-        Modifier
-    }
+    } else Modifier
 
-    Column(
+    val cardShape = RoundedCornerShape(28.dp)
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .pressScale(pressedScale = 0.96f)
-            .clip(ShapeLarge)
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongPress
-            ),
-        horizontalAlignment = Alignment.Start
+            .aspectRatio(0.83f)
+            .then(sharedBoundsModifier)
+            .pressScale(pressedScale = 0.97f)
+            .clip(cardShape)
+            .background(ReferencePalette.SoftCard)
+            .border(0.8.dp, Color.White.copy(alpha = 0.23f), cardShape)
+            .combinedClickable(onClick = onClick, onLongClick = onLongPress)
     ) {
-        // Outer Card Container (M3 Expressive Carded Surface - Filled Tonal)
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .then(sharedBoundsModifier),
-            shape = ShapeLarge,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shadowElevation = 0.dp
-        ) {
+        if (bucket.coverUris.size == 4) {
+            CollageCover(uris = bucket.coverUris, modifier = Modifier.fillMaxSize())
+        } else if (bucket.coverUri == Uri.EMPTY) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(10.dp)
+                    .background(
+                        Brush.linearGradient(
+                            listOf(Color(0xFF5A3114), Color(0xFF1C1511), Color(0xFF100F0D))
+                        )
+                    ),
+                contentAlignment = Alignment.Center
             ) {
-                if (bucket.coverUris.size == 4) {
-                    CollageCover(
-                        uris = bucket.coverUris,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else if (bucket.coverUri == Uri.EMPTY) {
-                    val icon = if (bucket.bucketName == "Favorites") {
-                        ImageVector.vectorResource(R.drawable.ic_ms_favorite)
-                    } else {
-                        ImageVector.vectorResource(R.drawable.ic_ms_photo_album)
-                    }
-                    Surface(
-                        shape = ShapeLarge,
-                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Surface(
-                                shape = ShapeFull,
-                                color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.9f),
-                                modifier = Modifier.size(52.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = icon,
-                                        contentDescription = bucket.bucketName,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(IconSizeTokens.L)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    AsyncImage(
-                        model = request,
-                        contentDescription = bucket.bucketName,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(ShapeLarge)
-                    )
-                }
+                Icon(
+                    imageVector = ImageVector.vectorResource(
+                        if (bucket.bucketName == "Favorites") R.drawable.ic_ms_favorite
+                        else R.drawable.ic_ms_photo_album
+                    ),
+                    contentDescription = null,
+                    tint = ReferencePalette.AmberBright,
+                    modifier = Modifier.size(52.dp)
+                )
             }
+        } else {
+            AsyncImage(
+                model = request,
+                contentDescription = bucket.bucketName,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
         }
-
-        Spacer(modifier = Modifier.height(SpacingTokens.S))
-
-        // Title
-        Text(
-            text = bucket.bucketName,
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 4.dp)
+        Box(
+            Modifier.fillMaxSize().background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color.Black.copy(alpha = 0.12f),
+                        Color.Transparent,
+                        Color.Black.copy(alpha = 0.84f)
+                    )
+                )
+            )
         )
-
-        // Metadata: Count and Size
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(12.dp)
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(Color.Black.copy(alpha = 0.26f))
+                .border(0.7.dp, Color.White.copy(alpha = 0.23f), CircleShape),
+            contentAlignment = Alignment.Center
         ) {
-            val countText = remember(bucket.itemCount) {
-                val formatted = NumberFormat.getInstance(Locale.US).format(bucket.itemCount)
-                if (bucket.itemCount == 1) "1 item" else "$formatted items"
-            }
-
+            Icon(
+                ImageVector.vectorResource(R.drawable.ic_ms_photo_album),
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(17.dp)
+            )
+        }
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(horizontal = 15.dp, vertical = 15.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
             Text(
-                text = countText,
-                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Normal),
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                text = bucket.bucketName,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = Color.White,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            val count = NumberFormat.getInstance(Locale.US).format(bucket.itemCount)
+            val sizeText = if (showAlbumSize && bucket.totalSizeBytes > 0L) {
+                "  •  " + Formatter.formatShortFileSize(context, bucket.totalSizeBytes)
+            } else ""
+            Text(
+                text = count + " " + (if (bucket.itemCount == 1) "item" else "items") + sizeText,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White.copy(alpha = 0.78f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-
-            if (showAlbumSize && bucket.totalSizeBytes > 0) {
-                Text(
-                    text = "•",
-                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                )
-                Text(
-                    text = Formatter.formatShortFileSize(context, bucket.totalSizeBytes),
-                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Normal),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
         }
     }
 }
