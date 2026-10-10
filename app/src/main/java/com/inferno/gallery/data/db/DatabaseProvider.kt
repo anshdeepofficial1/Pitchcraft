@@ -322,6 +322,43 @@ object DatabaseProvider {
                 }
             }
 
+
+            val MIGRATION_25_26 = object : androidx.room.migration.Migration(25, 26) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE core_media ADD COLUMN is_indexed_faces INTEGER NOT NULL DEFAULT 0")
+                    db.execSQL("""
+                        CREATE TABLE IF NOT EXISTS faces (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                            mediaId INTEGER NOT NULL,
+                            clusterId INTEGER NOT NULL,
+                            boundingBoxLeft REAL NOT NULL,
+                            boundingBoxTop REAL NOT NULL,
+                            boundingBoxRight REAL NOT NULL,
+                            boundingBoxBottom REAL NOT NULL,
+                            cropCachePath TEXT,
+                            embedding BLOB NOT NULL,
+                            confidence REAL NOT NULL DEFAULT 1.0
+                        )
+                    """.trimIndent())
+                    db.execSQL("CREATE INDEX IF NOT EXISTS index_faces_mediaId ON faces(mediaId)")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS index_faces_clusterId ON faces(clusterId)")
+                    db.execSQL("""
+                        CREATE TABLE IF NOT EXISTS person_clusters (
+                            clusterId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                            name TEXT,
+                            coverFaceId INTEGER,
+                            coverMediaId INTEGER,
+                            coverCropPath TEXT,
+                            faceCount INTEGER NOT NULL,
+                            centroid BLOB NOT NULL,
+                            isFavorite INTEGER NOT NULL,
+                            isHidden INTEGER NOT NULL,
+                            updatedAt INTEGER NOT NULL
+                        )
+                    """.trimIndent())
+                }
+            }
+
             val instance = Room.databaseBuilder(
                 context.applicationContext,
                 GalleryDatabase::class.java,
@@ -333,7 +370,7 @@ object DatabaseProvider {
                 MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
                 MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21,
                 MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_22_24,
-                MIGRATION_24_25, MIGRATION_23_25, MIGRATION_22_25
+                MIGRATION_24_25, MIGRATION_23_25, MIGRATION_22_25, MIGRATION_25_26
             )
             .fallbackToDestructiveMigrationOnDowngrade(true)
             .fallbackToDestructiveMigration(true)
