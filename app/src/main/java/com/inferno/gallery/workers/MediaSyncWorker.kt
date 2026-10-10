@@ -102,6 +102,7 @@ class MediaSyncWorker(
             }
 
             val excludedFolders = settingsRepo.excludedFoldersFlow.first()
+            val autoMlProcessing = settingsRepo.autoMlProcessingFlow.first()
 
             val autoIndexSmartEnabled = settingsRepo.smartSearchAutoIndexFlow.first()
             val smartSearchEngine = com.inferno.gallery.data.ai.SmartSearchEngine.getInstance(applicationContext)
@@ -110,7 +111,7 @@ class MediaSyncWorker(
                 .map { it.id }
                 .toHashSet()
             val unindexedSmartCount = database.embeddingDao().getUnindexedMediaIds().count { it in eligibleIds }
-            if (autoIndexSmartEnabled && smartSearchEngine.isModelDownloaded() && unindexedSmartCount > 0) {
+            if (autoMlProcessing && autoIndexSmartEnabled && smartSearchEngine.isModelDownloaded() && unindexedSmartCount > 0) {
                 Log.d("MediaSyncWorker", "Auto-indexing $unindexedSmartCount scoped images for Smart Search...")
                 val indexRequest = androidx.work.OneTimeWorkRequestBuilder<SmartSearchIndexWorker>().build()
                 androidx.work.WorkManager.getInstance(applicationContext).enqueueUniqueWork(
@@ -123,7 +124,7 @@ class MediaSyncWorker(
             val ocrEnabled = settingsRepo.ocrIndexingEnabledFlow.first()
             val unindexedOcrCount = database.mediaDao().getUnindexedOcrMedia()
                 .count { !excludedFolders.contains(it.bucketName) }
-            if (ocrEnabled && unindexedOcrCount > 0) {
+            if (autoMlProcessing && ocrEnabled && unindexedOcrCount > 0) {
                 val ocrRequest = androidx.work.OneTimeWorkRequestBuilder<OcrIndexWorker>().build()
                 androidx.work.WorkManager.getInstance(applicationContext).enqueueUniqueWork(
                     "OcrIndexWorker",
@@ -135,7 +136,7 @@ class MediaSyncWorker(
             val faceEnabled = settingsRepo.faceIndexingEnabledFlow.first()
             val unindexedFaceCount = database.mediaDao().getUnindexedFaceMedia()
                 .count { !excludedFolders.contains(it.bucketName) }
-            if (faceEnabled && unindexedFaceCount > 0) {
+            if (autoMlProcessing && faceEnabled && unindexedFaceCount > 0) {
                 Log.d("MediaSyncWorker", "Auto-indexing $unindexedFaceCount scoped images for People...")
                 val faceRequest = androidx.work.OneTimeWorkRequestBuilder<FaceIndexWorker>().build()
                 androidx.work.WorkManager.getInstance(applicationContext).enqueueUniqueWork(
