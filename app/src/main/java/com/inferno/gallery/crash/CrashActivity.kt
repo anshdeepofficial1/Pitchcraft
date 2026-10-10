@@ -7,7 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.content.FileProvider
 import androidx.fragment.app.FragmentActivity
-import com.inferno.gallery.ui.theme.PitchcraftTheme
+import com.inferno.gallery.ui.theme.PhotonGalleryTheme
 import java.io.File
 
 /**
@@ -41,7 +41,7 @@ class CrashActivity : FragmentActivity() {
         android.util.Log.e("PHOTON_CRASH", crashReport)
 
         setContent {
-            PitchcraftTheme(darkTheme = true) {
+            PhotonGalleryTheme(darkTheme = true) {
                 CrashScreen(
                     crashReport = crashReport,
                     onShareLog = { shareCrashLog(crashLogPath, crashReport) },
