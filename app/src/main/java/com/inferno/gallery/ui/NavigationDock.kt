@@ -103,7 +103,7 @@ fun FloatingNavigationPill(
             verticalAlignment = Alignment.CenterVertically
         ) {
             ReferenceDockIcon(
-                icon = R.drawable.ic_ms_image,
+                icon = R.drawable.ic_reference_home,
                 label = "Home",
                 selected = currentRoute == "photos",
                 onClick = onNavigateToPhotos
@@ -129,7 +129,7 @@ fun FloatingNavigationPill(
                 )
             }
             ReferenceDockIcon(
-                icon = R.drawable.ic_ms_person,
+                icon = R.drawable.ic_reference_people,
                 label = "People",
                 selected = currentRoute == "all_people",
                 onClick = onNavigateToPeople
