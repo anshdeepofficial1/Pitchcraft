@@ -818,6 +818,16 @@ fun MainAppLayout(
                                                     }
                                                 )
                                                 DropdownMenuItem(
+                                                    text = { Text("Camera photos") },
+                                                    leadingIcon = { Icon(ImageVector.vectorResource(R.drawable.ic_ms_image), contentDescription = null) },
+                                                    onClick = {
+                                                        viewModel.setFilterIndex(1)
+                                                        showOverflowMenu = false
+                                                        overflowState = "main"
+                                                        nestedNavController.navigate("photos") { launchSingleTop = true }
+                                                    }
+                                                )
+                                                DropdownMenuItem(
                                                     text = { Text("View Mode") },
                                                     leadingIcon = { Icon(ImageVector.vectorResource(R.drawable.ic_ms_grid_view), contentDescription = null) },
                                                     trailingIcon = { Icon(ImageVector.vectorResource(R.drawable.ic_ms_chevron_right), contentDescription = null) },
