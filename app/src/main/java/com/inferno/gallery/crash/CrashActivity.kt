@@ -7,7 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.content.FileProvider
 import androidx.fragment.app.FragmentActivity
-import com.inferno.gallery.ui.theme.PhotonGalleryTheme
+import com.inferno.gallery.ui.theme.PitchcraftTheme
 import java.io.File
 
 /**
@@ -41,7 +41,7 @@ class CrashActivity : FragmentActivity() {
         android.util.Log.e("PHOTON_CRASH", crashReport)
 
         setContent {
-            PhotonGalleryTheme(darkTheme = true) {
+            PitchcraftTheme(darkTheme = true) {
                 CrashScreen(
                     crashReport = crashReport,
                     onShareLog = { shareCrashLog(crashLogPath, crashReport) },
@@ -65,7 +65,7 @@ class CrashActivity : FragmentActivity() {
                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
                     putExtra(Intent.EXTRA_STREAM, uri)
-                    putExtra(Intent.EXTRA_SUBJECT, "Photon Gallery Crash Report")
+                    putExtra(Intent.EXTRA_SUBJECT, "Pitchcraft Crash Report")
                     putExtra(Intent.EXTRA_TEXT, "Crash report attached.\n\nPlease include steps to reproduce if possible.")
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
@@ -74,7 +74,7 @@ class CrashActivity : FragmentActivity() {
                 // Fallback: share as text
                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
-                    putExtra(Intent.EXTRA_SUBJECT, "Photon Gallery Crash Report")
+                    putExtra(Intent.EXTRA_SUBJECT, "Pitchcraft Crash Report")
                     putExtra(Intent.EXTRA_TEXT, report)
                 }
                 startActivity(Intent.createChooser(shareIntent, "Share Crash Log"))
@@ -133,7 +133,7 @@ class CrashActivity : FragmentActivity() {
 
     private fun copyCrashLog(report: String) {
         val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
-        val clip = android.content.ClipData.newPlainText("Photon Gallery Crash Log", report)
+        val clip = android.content.ClipData.newPlainText("Pitchcraft Crash Log", report)
         clipboard.setPrimaryClip(clip)
     }
 
