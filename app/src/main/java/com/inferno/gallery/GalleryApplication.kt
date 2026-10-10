@@ -64,8 +64,9 @@ class GalleryApplication : Application(), SingletonImageLoader.Factory, androidx
                 )
                 .build()
 
+            val autoMlProcessing = settingsRepo.autoMlProcessingFlow.first()
             val ocrEnabled = settingsRepo.ocrIndexingEnabledFlow.first()
-            if (ocrEnabled) {
+            if (autoMlProcessing && ocrEnabled) {
                 val ocrIndexRequest = androidx.work.OneTimeWorkRequestBuilder<OcrIndexWorker>()
                     .setExpedited(androidx.work.OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                     .build()
@@ -118,6 +119,12 @@ class GalleryApplication : Application(), SingletonImageLoader.Factory, androidx
                     androidx.work.ExistingPeriodicWorkPolicy.KEEP,
                     geocodePeriodicRequest
                 )
+
+            if (!autoMlProcessing) {
+                WorkManager.getInstance(this@GalleryApplication).cancelUniqueWork("OcrIndexWorker")
+                WorkManager.getInstance(this@GalleryApplication).cancelUniqueWork("FaceIndexWorker")
+                WorkManager.getInstance(this@GalleryApplication).cancelUniqueWork("SmartSearchIndexWorker")
+            }
 
             val autoCleanEnabled = settingsRepo.autoCleanTrashEnabledFlow.first()
             if (autoCleanEnabled) {
