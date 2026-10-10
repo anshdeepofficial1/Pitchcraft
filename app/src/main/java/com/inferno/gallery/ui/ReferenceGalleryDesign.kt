@@ -19,7 +19,9 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -124,6 +126,7 @@ private fun ReferenceChip(title: String, selected: Boolean, onClick: () -> Unit)
 @Composable
 internal fun ReferenceGallerySurface(
     pagedMedia: LazyPagingItems<GalleryListItem>,
+    lazyGridState: LazyGridState,
     onMediaClick: (GalleryItem) -> Unit,
     onMediaLongClick: (GalleryItem) -> Unit,
     isSelectionMode: Boolean,
@@ -143,7 +146,9 @@ internal fun ReferenceGallerySurface(
         (pagedMedia[it] as? GalleryListItem.Item)?.galleryItem
     }
 
-    LazyColumn(
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(1),
+        state = lazyGridState,
         modifier = modifier
             .fillMaxSize()
             .background(
