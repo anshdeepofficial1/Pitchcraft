@@ -111,6 +111,33 @@ tap_normalized() {
 }
 tap_normalized 32 93
 adb exec-out screencap -p > pitchcraft-albums-reference.png
+# Verify the People scan does not collapse into a 190dp-wide side card.
+adb shell input swipe "$(( WIDTH / 2 ))" "$(( HEIGHT * 77 / 100 ))" "$(( WIDTH / 2 ))" "$(( HEIGHT * 38 / 100 ))" 450
+sleep 2
+adb shell uiautomator dump /sdcard/pitchcraft-albums-people.xml >/dev/null || true
+adb pull /sdcard/pitchcraft-albums-people.xml pitchcraft-albums-people.xml >/dev/null || true
+START_COORD="$(python3 - <<'PY'
+import re, xml.etree.ElementTree as ET
+try:
+    for node in ET.parse("pitchcraft-albums-people.xml").getroot().iter("node"):
+        if node.get("text") in ("Start","Find familiar faces"):
+            b=[int(n) for n in re.findall(r'\d+',node.get('bounds',''))]
+            if len(b)==4:
+                print((b[0]+b[2])//2,(b[1]+b[3])//2)
+                break
+except (OSError,ET.ParseError):
+    pass
+PY
+)"
+if [ -n "$START_COORD" ]; then
+  read -r SX SY <<< "$START_COORD"
+  adb shell input tap "$SX" "$SY"
+  sleep 2
+  adb exec-out screencap -p > pitchcraft-people-scanning-reference.png
+  echo "Captured People after Start at $SX,$SY"
+else
+  echo "::warning::People Start card not visible at this scroll position; scanning capture skipped."
+fi
 tap_normalized 65 93
 adb exec-out screencap -p > pitchcraft-search-reference.png
 tap_normalized 17 93
