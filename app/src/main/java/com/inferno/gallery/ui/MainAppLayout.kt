@@ -308,7 +308,46 @@ fun MainAppLayout(
     }
     
     if (onboardingCompleted == null) {
-        Box(modifier = modifier.fillMaxSize().background(Color.Black))
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primaryContainer,
+                            MaterialTheme.colorScheme.surface
+                        )
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Surface(
+                    shape = RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                    shadowElevation = 6.dp
+                ) {
+                    Text(
+                        "P",
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 18.dp)
+                    )
+                }
+                Spacer(Modifier.height(14.dp))
+                Text(
+                    "Pitchcraft",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "Loading your gallery…",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
         return
     }
 
@@ -1007,7 +1046,21 @@ fun MainAppLayout(
                     clusterId = clusterId,
                     viewModel = viewModel,
                     onBack = { nestedNavController.popBackStack() },
-                    onPhotoClick = onPhotoClick
+                    onPhotoClick = onPhotoClick,
+                    onStory = {
+                        nestedNavController.navigate("person_story/$clusterId")
+                    },
+                    onCreateCollage = onCreateCollage
+                )
+            }
+
+            composable("person_story/{clusterId}") { backStackEntry ->
+                val clusterId = backStackEntry.arguments?.getString("clusterId")?.toLongOrNull()
+                    ?: return@composable
+                PersonStoryScreen(
+                    clusterId = clusterId,
+                    viewModel = viewModel,
+                    onBack = { nestedNavController.popBackStack() }
                 )
             }
 
