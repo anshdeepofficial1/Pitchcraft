@@ -355,34 +355,98 @@ fun DetailScreen(
     if (showSlideshowOptions) {
         AlertDialog(
             onDismissRequest = { showSlideshowOptions = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shape = RoundedCornerShape(28.dp),
-            title = { Text("Slideshow studio", fontWeight = FontWeight.Bold) },
+            containerColor = ReferencePalette.SoftCard,
+            shape = RoundedCornerShape(29.dp),
+            title = {
+                Text(
+                    "Slideshow Studio",
+                    color = ReferencePalette.Cream,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Text("Choose how your memories play.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Timing", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "Your memories, at your pace.",
+                        color = ReferencePalette.Secondary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Time per photo",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = ReferencePalette.Cream
+                        )
+                        Text(
+                            (slideshowIntervalMs / 1000).toString() + " sec",
+                            color = ReferencePalette.AmberBright,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    androidx.compose.material3.Slider(
+                        value = slideshowIntervalMs / 1000f,
+                        onValueChange = {
+                            slideshowIntervalMs = it.toInt().coerceIn(1, 30) * 1000L
+                        },
+                        valueRange = 1f..30f,
+                        steps = 28
+                    )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf(2000L to "2s", 4000L to "4s", 7000L to "7s").forEach { (value, label) ->
                             Surface(
                                 onClick = { slideshowIntervalMs = value },
                                 shape = CircleShape,
-                                color = if (slideshowIntervalMs == value) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest
+                                color = if (slideshowIntervalMs == value) ReferencePalette.Amber
+                                        else ReferencePalette.Espresso,
+                                border = androidx.compose.foundation.BorderStroke(
+                                    0.8.dp,
+                                    ReferencePalette.Outline
+                                )
                             ) {
-                                Text(label, modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp), color = if (slideshowIntervalMs == value) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface)
+                                Text(
+                                    label,
+                                    modifier = Modifier.padding(horizontal = 17.dp, vertical = 9.dp),
+                                    color = ReferencePalette.Cream
+                                )
                             }
                         }
                     }
-                    Surface(onClick = { slideshowShuffle = !slideshowShuffle }, shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainerHighest) {
-                        Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Shuffle photos")
-                            Text(if (slideshowShuffle) "ON" else "OFF", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    Surface(
+                        onClick = { slideshowShuffle = !slideshowShuffle },
+                        shape = RoundedCornerShape(19.dp),
+                        color = ReferencePalette.Espresso
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(15.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Shuffle order", color = ReferencePalette.Cream)
+                            Text(
+                                if (slideshowShuffle) "ON" else "OFF",
+                                color = ReferencePalette.AmberBright,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
-                    Surface(onClick = { slideshowRepeat = !slideshowRepeat }, shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainerHighest) {
-                        Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Repeat continuously")
-                            Text(if (slideshowRepeat) "ON" else "OFF", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    Surface(
+                        onClick = { slideshowRepeat = !slideshowRepeat },
+                        shape = RoundedCornerShape(19.dp),
+                        color = ReferencePalette.Espresso
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(15.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Repeat continuously", color = ReferencePalette.Cream)
+                            Text(
+                                if (slideshowRepeat) "ON" else "OFF",
+                                color = ReferencePalette.AmberBright,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
@@ -390,11 +454,17 @@ fun DetailScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showSlideshowOptions = false
-                    slideshowRunning = true
-                    showUi = false
-                }) { Text("Start slideshow") }
+                    slideshowRunning = galleryItems.size > 1
+                    showUi = !slideshowRunning
+                }) {
+                    Text("Start slideshow", color = ReferencePalette.AmberBright)
+                }
             },
-            dismissButton = { TextButton(onClick = { showSlideshowOptions = false }) { Text("Cancel") } }
+            dismissButton = {
+                TextButton(onClick = { showSlideshowOptions = false }) {
+                    Text("Cancel", color = ReferencePalette.Secondary)
+                }
+            }
         )
     }
 
@@ -1211,8 +1281,8 @@ fun DetailScreen(
                 ExpressiveFilledIconButton(
                     onClick = onBack,
                     colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        contentColor = MaterialTheme.colorScheme.onSurface
+                        containerColor = ReferencePalette.Espresso,
+                        contentColor = ReferencePalette.Cream
                     )
                 ) {
                     Icon(
@@ -1394,8 +1464,8 @@ fun DetailScreen(
                 HorizontalFloatingToolbar(
                     expanded = true,
                     colors = androidx.compose.material3.FloatingToolbarDefaults.standardFloatingToolbarColors(
-                        toolbarContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        toolbarContentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        toolbarContainerColor = ReferencePalette.Amber,
+                        toolbarContentColor = Color.White
                     ),
                     modifier = Modifier.height(48.dp)
                 ) {
