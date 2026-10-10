@@ -58,6 +58,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -85,6 +86,8 @@ import androidx.work.WorkInfo
 import coil3.compose.AsyncImage
 import coil3.compose.SubcomposeAsyncImage
 import com.inferno.gallery.R
+import com.inferno.gallery.data.network.AppUpdateManager
+import com.inferno.gallery.data.network.AppUpdateState
 import com.inferno.gallery.ui.components.ColorSchemeBottomSheet
 import com.inferno.gallery.ui.components.ExpressiveButton
 import com.inferno.gallery.ui.theme.MotionTokens
@@ -148,6 +151,21 @@ fun SettingsScreen(
 
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
+    val updateScope = rememberCoroutineScope()
+    val updateState by AppUpdateManager.state.collectAsState()
+    val installedVersion = remember {
+        runCatching {
+            val info = context.packageManager.getPackageInfo(context.packageName, 0)
+            "v${info.versionName} (Build ${info.longVersionCode})"
+        }.getOrDefault("Pitchcraft")
+    }
+
+    androidx.compose.runtime.LaunchedEffect(updateState) {
+        if (updateState is AppUpdateState.UpToDate) {
+            Toast.makeText(context, "Pitchcraft is up to date.", Toast.LENGTH_SHORT).show()
+            AppUpdateManager.dismissAvailable()
+        }
+    }
 
     var showClearIndexConfirm by remember { mutableStateOf(false) }
     var showDeleteModelConfirm by remember { mutableStateOf(false) }
@@ -1661,7 +1679,7 @@ fun SettingsScreen(
                                                 color = MaterialTheme.colorScheme.secondaryContainer
                                             ) {
                                                 Text(
-                                                    text = "v1.0.0 (Build 1)",
+                                                    text = installedVersion,
                                                     style = MaterialTheme.typography.labelMedium,
                                                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                                                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
@@ -1829,7 +1847,7 @@ fun SettingsScreen(
                                                 title = "Report Issue & Feedback",
                                                 subtitle = "Submit bug reports or suggest features",
                                                 icon = ImageVector.vectorResource(R.drawable.ic_ms_bug_report),
-                                                onClick = { uriHandler.openUri("https://github.com/Bn5prS/Photon_Gallery/issues") }
+                                                onClick = { uriHandler.openUri("https://github.com/anshdeepofficial1/Pitchcraft/issues") }
                                             )
                                         },
                                         {
@@ -1837,16 +1855,25 @@ fun SettingsScreen(
                                                 title = "Source Code on GitHub",
                                                 subtitle = "Inspect or contribute to Pitchcraft",
                                                 icon = ImageVector.vectorResource(R.drawable.ic_ms_code),
-                                                onClick = { uriHandler.openUri("https://github.com/Bn5prS/Photon_Gallery") }
+                                                onClick = { uriHandler.openUri("https://github.com/anshdeepofficial1/Pitchcraft") }
                                             )
                                         },
                                         {
                                             ClickableSettingItem(
                                                 title = "Check for Updates",
-                                                subtitle = "Pitchcraft v1.0.0 (Build 1) is up to date",
+                                                subtitle = when (val state = updateState) {
+                                                    is AppUpdateState.Checking -> "Checking GitHub Releases…"
+                                                    is AppUpdateState.Available -> "${state.info.version} is available"
+                                                    is AppUpdateState.Downloading -> "Downloading ${(state.progress * 100).toInt()}%"
+                                                    is AppUpdateState.ReadyToInstall -> "Update downloaded • ready to install"
+                                                    is AppUpdateState.Error -> state.message
+                                                    else -> "Installed: $installedVersion"
+                                                },
                                                 icon = ImageVector.vectorResource(R.drawable.ic_ms_refresh),
                                                 onClick = {
-                                                    Toast.makeText(context, "Pitchcraft is up to date!", Toast.LENGTH_SHORT).show()
+                                                    updateScope.launch {
+                                                        AppUpdateManager.check(context, silent = false)
+                                                    }
                                                 }
                                             )
                                         },
