@@ -29,45 +29,49 @@ jobs:
           github-token: ${{ github.token }}
           name: Pitchcraft-TEST-ONLY-not-an-update-APK
           path: new
-      - name: Verify APKs and compare signing certificates
+      - name: Verify exact versions and certificate fingerprints (fail closed)
         shell: bash
         run: |
           set -euo pipefail
-          OLD="$(find old -name '*.apk' -type f | head -n 1)"
-          NEW="$(find new -name '*.apk' -type f | head -n 1)"
-          test -n "$OLD" && test -n "$NEW"
-          SDKROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
-          SIGNER="$(find "$SDKROOT/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
-          AAPT="$(find "$SDKROOT/build-tools" -type f -name aapt | sort -V | tail -n 1)"
-          test -x "$SIGNER" && test -x "$AAPT"
-          "$SIGNER" verify "$OLD"
-          "$SIGNER" verify "$NEW"
-          old_info="$("$AAPT" dump badging "$OLD" | head -1)"
-          new_info="$("$AAPT" dump badging "$NEW" | head -1)"
-          echo "1.0.1: $old_info"
-          echo "1.0.2: $new_info"
-          old_cert="$("$SIGNER" verify --print-certs "$OLD" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
-          new_cert="$("$SIGNER" verify --print-certs "$NEW" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
-          test -n "$old_cert" && test -n "$new_cert"
-          echo "Old APK certificate SHA-256: $old_cert"
-          echo "New APK certificate SHA-256: $new_cert"
-          sha256sum "$OLD" "$NEW"
-          {
-            echo "## Existing-build compatibility diagnostic"
-            echo ""
-            echo "- Original 1.0.1 (GitHub run #67): \`$old_info\`"
-            echo "- Latest 1.0.2 (GitHub run #143): \`$new_info\`"
-            echo "- Original signing SHA-256: \`$old_cert\`"
-            echo "- New signing SHA-256: \`$new_cert\`"
-            echo ""
-          } >> "$GITHUB_STEP_SUMMARY"
-          if [[ "$old_cert" == "$new_cert" ]]; then
-            echo "RESULT: MATCHING_CERTIFICATES"
-            echo "## Matching build certificates" >> "$GITHUB_STEP_SUMMARY"
-            echo "This is not proof of the certificate on the user's installed app. Verify that separately." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "RESULT: DIFFERENT_CERTIFICATES"
-            echo "::warning::These two GitHub debug builds use different signing certificates. A normal in-place update is impossible between them."
-            echo "## DIFFERENT signing certificates" >> "$GITHUB_STEP_SUMMARY"
-            echo "A normal in-place update from run #67 to run #143 is impossible. Do NOT uninstall the old app or clear data. Obtain the original private signing key or use an independently verified local data migration." >> "$GITHUB_STEP_SUMMARY"
-          fi
+          python3 - <<'PY'
+          import os, re, subprocess
+          from pathlib import Path
+
+          sdk = Path(os.environ.get("ANDROID_HOME", "/usr/local/lib/android/sdk"))
+          tools = sorted((sdk / "build-tools").glob("*/apksigner"))
+          aapts = sorted((sdk / "build-tools").glob("*/aapt"))
+          if not tools or not aapts:
+              raise SystemExit("Android build tools missing")
+          signer, aapt = str(tools[-1]), str(aapts[-1])
+          def inspect(where, expected_version_code, expected_version_name):
+              matches = list(Path(where).rglob("*.apk"))
+              if len(matches) != 1:
+                  raise SystemExit("Expected exactly one APK under " + where)
+              apk = matches[0]
+              subprocess.run([signer, "verify", str(apk)], check=True)
+              badging = subprocess.check_output([aapt, "dump", "badging", str(apk)], text=True).splitlines()[0]
+              print(badging, flush=True)
+              required = (f"name='com.anshdeep.pitchcraft.debug'", f"versionCode='{expected_version_code}'", f"versionName='{expected_version_name}'")
+              if any(s not in badging for s in required):
+                  raise SystemExit(f"Wrong package/version metadata in {apk}")
+              detail = subprocess.check_output([signer, "verify", "--print-certs", str(apk)], text=True)
+              print(f"Raw public certificate detail for {apk}:\n{detail}", flush=True)
+              m = re.search(r"certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F]{64})",detail,re.I)
+              if not m:
+                  raise SystemExit("Could not read valid SHA-256 certificate fingerprint; no compatibility verdict")
+              cert = m.group(1).lower()
+              print(f"Parsed {apk} signer SHA-256: {cert}",flush=True)
+              return cert
+
+          old = inspect("old",2,"1.0.1")
+          new = inspect("new",3,"1.0.2")
+          summary = os.environ["GITHUB_STEP_SUMMARY"]
+          if old == new:
+              verdict = "MATCH - these two specific GitHub APK artifacts use the same signing certificate"
+              print("RESULT: MATCHING_CERTIFICATES",flush=True)
+          else:
+              verdict = "MISMATCH - these two specific GitHub APK artifacts cannot update each other in place"
+              print("RESULT: DIFFERENT_CERTIFICATES",flush=True)
+          with open(summary,"a") as f:
+              f.write(f"## Pitchcraft 1.0.1 vs 1.0.2\n\n- Old cert SHA-256: \`{old}\`\n- New cert SHA-256: \`{new}\`\n- **{verdict}**\n\nThe phone's installed APK certificate must still be checked. Do not uninstall or clear app data.\n")
+          PY
