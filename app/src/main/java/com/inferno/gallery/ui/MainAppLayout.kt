@@ -684,11 +684,15 @@ fun MainAppLayout(
                                             if (localUserImageUri != null) {
                                                 AsyncImage(model = localUserImageUri, contentDescription = "Local profile", modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
                                             } else {
-                                                Image(
-                                                    painter = painterResource(R.drawable.pitchcraft_logo_foreground),
-                                                    contentDescription = "Pitchcraft profile",
-                                                    modifier = Modifier.padding(3.dp)
-                                                )
+                                                // The profile circle is personal: never substitute the app logo.
+                                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                                    Text(
+                                                        localUserName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "G",
+                                                        fontSize = 19.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = ReferencePalette.Cream
+                                                    )
+                                                }
                                             }
                                         }
                                         Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
@@ -848,9 +852,13 @@ fun MainAppLayout(
                             if (currentRoute == "photos") {
                                 ReferenceFilterTabs(
                                     selectedFilter = if (selectedFilter == 1) 1 else 0,
-                                    onSelectFilter = { viewModel.setFilterIndex(it) },
+                                    onSelectFilter = {
+                                        viewModel.setFilterIndex(it)
+                                        if (it == 0) nestedNavController.navigate("photos") { launchSingleTop = true }
+                                    },
                                     onAlbumsClick = { nestedNavController.navigate("albums") { launchSingleTop = true } },
                                     onPeopleClick = { nestedNavController.navigate("all_people") { launchSingleTop = true } },
+                                    onVideosClick = { nestedNavController.navigate("album/Videos") { launchSingleTop = true } },
                                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
                                 )
                             }
@@ -908,6 +916,11 @@ fun MainAppLayout(
                         },
                         onNavigateToFavorites = {
                             nestedNavController.navigate("album/Favorites") {
+                                launchSingleTop = true
+                            }
+                        },
+                        onNavigateToPeople = {
+                            nestedNavController.navigate("all_people") {
                                 launchSingleTop = true
                             }
                         },
