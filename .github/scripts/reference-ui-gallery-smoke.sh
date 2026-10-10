@@ -8,13 +8,40 @@ adb shell pm grant "$PACKAGE" android.permission.READ_MEDIA_VIDEO
 adb shell appops set "$PACKAGE" MANAGE_EXTERNAL_STORAGE allow
 adb shell am force-stop "$PACKAGE"
 adb shell am start -W -n "$PACKAGE/$ACTIVITY"
-sleep 3
-# Main onboarding's 'Continue to Gallery' button is near 92% down the screen.
+sleep 4
+# Wait for permissions/DataStore composition. Tap the real UI node bounds,
+# never a guessed screen fraction (the previous fixed tap raced permission refresh).
 DISPLAY="$(adb shell wm size | tr -d '\r' | tail -n1)"
 WIDTH="$(printf '%s' "$DISPLAY" | sed -E 's/.* ([0-9]+)x([0-9]+).*/\1/')"
 HEIGHT="$(printf '%s' "$DISPLAY" | sed -E 's/.* ([0-9]+)x([0-9]+).*/\2/')"
-adb shell input tap "$(( WIDTH / 2 ))" "$(( HEIGHT * 90 / 100 ))"
-sleep 18
+for attempt in $(seq 1 12); do
+  adb shell uiautomator dump /sdcard/pitchcraft-onboarding.xml >/dev/null || true
+  adb pull /sdcard/pitchcraft-onboarding.xml pitchcraft-onboarding.xml >/dev/null || true
+  if grep -q 'text="Your story starts here"\|text="Your collection"\|text="Your people"' pitchcraft-onboarding.xml; then
+    break
+  fi
+  COORD="$(python3 - <<'PY'
+import re, xml.etree.ElementTree as ET
+try:
+    root=ET.parse('pitchcraft-onboarding.xml').getroot()
+    for node in root.iter('node'):
+        if node.get('text') == 'Continue to Gallery':
+            numbers=[int(v) for v in re.findall(r'\d+',node.get('bounds',''))]
+            if len(numbers)==4:
+                print((numbers[0]+numbers[2])//2,(numbers[1]+numbers[3])//2)
+                break
+except (OSError,ET.ParseError):
+    pass
+PY
+)"
+  if [ -n "$COORD" ]; then
+    read -r TAP_X TAP_Y <<< "$COORD"
+    echo "Continue button is at $TAP_X,$TAP_Y (attempt $attempt)"
+    adb shell input tap "$TAP_X" "$TAP_Y"
+  fi
+  sleep 4
+done
+sleep 4
 adb exec-out screencap -p > pitchcraft-gallery-zero-images.png
 adb shell uiautomator dump /sdcard/pitchcraft-reference-ui.xml >/dev/null
 adb pull /sdcard/pitchcraft-reference-ui.xml pitchcraft-reference-ui.xml >/dev/null
