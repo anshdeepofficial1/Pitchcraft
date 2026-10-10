@@ -126,6 +126,8 @@ internal fun ReferenceGallerySurface(
     pagedMedia: LazyPagingItems<GalleryListItem>,
     onMediaClick: (GalleryItem) -> Unit,
     onMediaLongClick: (GalleryItem) -> Unit,
+    isSelectionMode: Boolean,
+    selectedUris: Set<String>,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier
 ) {
@@ -172,7 +174,8 @@ internal fun ReferenceGallerySurface(
                             .align(Alignment.TopStart),
                         onClick = { onMediaClick(first) },
                         onLongClick = { onMediaLongClick(first) },
-                        overline = "YOUR MOMENTS"
+                        overline = "YOUR MOMENTS",
+                        selected = isSelectionMode && first.uri.toString() in selectedUris
                     )
                     if (second != null) {
                         ReferencePhotoCard(
@@ -185,7 +188,8 @@ internal fun ReferenceGallerySurface(
                                 .rotate(-8f),
                             onClick = { onMediaClick(second) },
                             onLongClick = { onMediaLongClick(second) },
-                            overline = "MEMORIES IN FOCUS"
+                            overline = "MEMORIES IN FOCUS",
+                            selected = isSelectionMode && second.uri.toString() in selectedUris
                         )
                     }
                 }
@@ -241,7 +245,8 @@ internal fun ReferenceGallerySurface(
                             modifier = Modifier.fillMaxWidth().height(225.dp),
                             onClick = { onMediaClick(photo) },
                             onLongClick = { onMediaLongClick(photo) },
-                            overline = if (photo.isVideo) "VIDEO" else "PHOTO"
+                            overline = if (photo.isVideo) "VIDEO" else "PHOTO",
+                            selected = isSelectionMode && photo.uri.toString() in selectedUris
                         )
                     }
                     is GalleryListItem.Header -> {
@@ -274,6 +279,7 @@ private fun ReferencePhotoCard(
     item: GalleryItem,
     modifier: Modifier,
     overline: String,
+    selected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
@@ -281,7 +287,11 @@ private fun ReferencePhotoCard(
         modifier = modifier
             .clip(RoundedCornerShape(29.dp))
             .background(ReferencePalette.SoftCard)
-            .border(0.9.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(29.dp))
+            .border(
+                if (selected) 2.dp else 0.9.dp,
+                if (selected) ReferencePalette.AmberBright else Color.White.copy(alpha = 0.22f),
+                RoundedCornerShape(29.dp)
+            )
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
     ) {
         AsyncImage(
@@ -334,9 +344,11 @@ private fun ReferencePhotoCard(
         ) {
             Icon(
                 androidx.compose.ui.graphics.vector.ImageVector.vectorResource(
-                    if (item.isVideo) R.drawable.ic_ms_play_arrow else R.drawable.ic_ms_image
+                    if (selected) R.drawable.ic_ms_check_circle
+                    else if (item.isVideo) R.drawable.ic_ms_play_arrow
+                    else R.drawable.ic_ms_image
                 ),
-                contentDescription = if (item.isVideo) "Video" else "Photo",
+                contentDescription = if (selected) "Selected" else if (item.isVideo) "Video" else "Photo",
                 tint = Color.White,
                 modifier = Modifier.size(18.dp)
             )
