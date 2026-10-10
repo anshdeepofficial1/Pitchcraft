@@ -910,6 +910,10 @@ fun MainAppLayout(
                             nestedNavController.navigate("album/Favorites") {
                                 launchSingleTop = true
                             }
+                        },
+                        onCentralAction = {
+                            newAlbumName = ""
+                            showCreateAlbumDialog = true
                         }
                     )
                 }
