@@ -73,6 +73,9 @@ jobs:
             pitchcraft-logcat.txt
             pitchcraft-gallery-zero-images.png
             pitchcraft-gallery-with-test-images.png
+            pitchcraft-albums-reference.png
+            pitchcraft-search-reference.png
+            pitchcraft-people-reference.png
             pitchcraft-reference-ui.xml
             pitchcraft-reference-photos.xml
           if-no-files-found: ignore
