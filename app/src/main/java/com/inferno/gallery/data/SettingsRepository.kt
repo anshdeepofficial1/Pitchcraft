@@ -157,7 +157,7 @@ class SettingsRepository private constructor(private val context: Context) {
 
     val useMaterialYouFlow: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[USE_MATERIAL_YOU] ?: true
+            preferences[USE_MATERIAL_YOU] ?: false
         }
 
     val useAmoledBlackFlow: Flow<Boolean> = context.dataStore.data
@@ -167,7 +167,7 @@ class SettingsRepository private constructor(private val context: Context) {
 
     val appSeedColorFlow: Flow<Int> = context.dataStore.data
         .map { preferences ->
-            preferences[APP_SEED_COLOR] ?: 0xFF6750A4.toInt() // Default M3 Purple
+            preferences[APP_SEED_COLOR] ?: 0xFF0A6EFF.toInt() // Default M3 Purple
         }
 
     val themePaletteStyleFlow: Flow<String> = context.dataStore.data
