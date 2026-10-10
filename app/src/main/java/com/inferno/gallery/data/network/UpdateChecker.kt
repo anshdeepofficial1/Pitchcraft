@@ -14,7 +14,7 @@ data class UpdateInfo(
 )
 
 object UpdateChecker {
-    private const val GITHUB_LATEST_RELEASE_URL = "https://api.github.com/repos/Bn5prS/Photon_Gallery/releases/latest"
+    private const val GITHUB_LATEST_RELEASE_URL = "https://api.github.com/repos/anshdeepofficial1/Pitchcraft/releases/latest"
     private val client = OkHttpClient()
 
     suspend fun checkForUpdates(currentVersion: String): UpdateInfo? = withContext(Dispatchers.IO) {
