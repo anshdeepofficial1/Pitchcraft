@@ -44,7 +44,7 @@ class GalleryRepository(private val context: Context) {
             MediaStore.MediaColumns.MIME_TYPE,
             MediaStore.MediaColumns.DATE_ADDED,
             MediaStore.Images.Media.DATE_TAKEN,
-            MediaStore.MediaColumns.BUCKET_DISPLAY_NAME,
+            MediaStore.Images.Media.BUCKET_DISPLAY_NAME,
             MediaStore.MediaColumns.SIZE,
             MediaStore.MediaColumns.WIDTH,
             MediaStore.MediaColumns.HEIGHT
@@ -62,7 +62,7 @@ class GalleryRepository(private val context: Context) {
                 val mimeIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.MIME_TYPE)
                 val addedIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_ADDED)
                 val takenIndex = cursor.getColumnIndex(MediaStore.Images.Media.DATE_TAKEN)
-                val bucketIndex = cursor.getColumnIndex(MediaStore.MediaColumns.BUCKET_DISPLAY_NAME)
+                val bucketIndex = cursor.getColumnIndex(MediaStore.Images.Media.BUCKET_DISPLAY_NAME)
                 val sizeIndex = cursor.getColumnIndex(MediaStore.MediaColumns.SIZE)
                 val widthIndex = cursor.getColumnIndex(MediaStore.MediaColumns.WIDTH)
                 val heightIndex = cursor.getColumnIndex(MediaStore.MediaColumns.HEIGHT)
