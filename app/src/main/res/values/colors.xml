@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="white">#FFFFFFFF</color>
+    <color name="pitchcraft_blue">#FF0A6EFF</color>
+    <color name="pitchcraft_splash">#FFEAF1FF</color>
 </resources>
