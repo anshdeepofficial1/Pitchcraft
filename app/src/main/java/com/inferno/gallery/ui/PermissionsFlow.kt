@@ -98,7 +98,7 @@ fun PermissionOnboardingScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = Color.Transparent,
+        containerColor = ReferencePalette.Black,
         contentWindowInsets = WindowInsets.safeDrawing
     ) { paddingValues ->
         Column(
@@ -106,7 +106,7 @@ fun PermissionOnboardingScreen(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        listOf(Color(0xFF080604), Color(0xFF171006), Color(0xFF090705))
+                        listOf(ReferencePalette.Black, ReferencePalette.Espresso, ReferencePalette.Black)
                     )
                 )
                 .padding(paddingValues)
@@ -117,8 +117,9 @@ fun PermissionOnboardingScreen(
             // Scrollable Content
             Column(
                 modifier = Modifier
-                    .weight(1f, fill = false)
+                    .weight(1f, fill = true)
                     .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Spacer(modifier = Modifier.height(24.dp))
@@ -126,10 +127,10 @@ fun PermissionOnboardingScreen(
                 // App Icon
                 Surface(
                     shape = ShapeExtraLarge,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.82f),
+                    color = ReferencePalette.SoftCard,
                     border = androidx.compose.foundation.BorderStroke(
                         1.dp,
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
+                        ReferencePalette.Outline
                     ),
                     modifier = Modifier.size(80.dp)
                 ) {
@@ -152,7 +153,7 @@ fun PermissionOnboardingScreen(
                 Text(
                     text = "Your memories,\nbeautifully yours",
                     style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = ReferencePalette.Cream,
                     textAlign = TextAlign.Center
                 )
 
@@ -161,7 +162,7 @@ fun PermissionOnboardingScreen(
                 Text(
                     text = "Your memories stay private on this device. Allow gallery access to get started.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = ReferencePalette.Secondary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
@@ -237,8 +238,8 @@ fun PermissionOnboardingScreen(
                     },
                     shape = ShapeFull,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
+                        containerColor = ReferencePalette.AmberBright,
+                        contentColor = ReferencePalette.Black
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
