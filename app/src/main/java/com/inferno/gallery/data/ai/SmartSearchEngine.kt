@@ -12,6 +12,7 @@ import java.nio.FloatBuffer
 import java.nio.LongBuffer
 import kotlin.math.sqrt
 import android.os.Build
+import com.inferno.gallery.data.ProcessingPerformance
 
 class SmartSearchEngine(private val context: Context) {
 
@@ -48,6 +49,15 @@ class SmartSearchEngine(private val context: Context) {
     private var visionSession: OrtSession? = null
     private var tokenizer: BPETokenizer? = null
     private var isLoaded = false
+    private var performanceMode: ProcessingPerformance = ProcessingPerformance.MAX
+
+    @Synchronized
+    fun setPerformanceMode(mode: ProcessingPerformance) {
+        if (mode != performanceMode && isLoaded) {
+            close()
+        }
+        performanceMode = mode
+    }
 
     fun getModelDir(): File = modelDirFile
 
@@ -105,18 +115,29 @@ class SmartSearchEngine(private val context: Context) {
             val tokenizerFile = File(modelDirFile, TOKENIZER_NAME)
             this.tokenizer = BPETokenizer(tokenizerFile.readText(Charsets.UTF_8))
 
+            val cores = Runtime.getRuntime().availableProcessors().coerceAtLeast(2)
+            val threads = when (performanceMode) {
+                ProcessingPerformance.BALANCED -> minOf(2, cores)
+                ProcessingPerformance.FAST -> minOf(4, cores)
+                ProcessingPerformance.MAX -> minOf(8, cores)
+            }
+
             // Initialize Text Session options
             val textOptions = OrtSession.SessionOptions()
+            runCatching { textOptions.setIntraOpNumThreads(threads) }
+            runCatching { textOptions.setInterOpNumThreads(1) }
             val textFile = File(modelDirFile, TEXT_MODEL_NAME)
             this.textSession = environment.createSession(textFile.absolutePath, textOptions)
 
             // Initialize Vision Session options
             val visionOptions = OrtSession.SessionOptions()
+            runCatching { visionOptions.setIntraOpNumThreads(threads) }
+            runCatching { visionOptions.setInterOpNumThreads(1) }
             val visionFile = File(modelDirFile, VISION_MODEL_NAME)
             this.visionSession = environment.createSession(visionFile.absolutePath, visionOptions)
 
             isLoaded = true
-            Log.d(TAG, "SmartSearchEngine models loaded successfully.")
+            Log.d(TAG, "SmartSearchEngine models loaded successfully with $performanceMode / $threads threads.")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load SmartSearchEngine models: ${e.message}", e)
             close()
