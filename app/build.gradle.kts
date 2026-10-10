@@ -46,8 +46,19 @@ android {
 
     buildTypes {
         debug {
-            // Install alongside the release app so device testing never touches real app data
+            // v1.0.1 debug APKs used this exact application ID suffix.
+            // Keep it stable so a correctly signed v1.0.2 can update in place.
             applicationIdSuffix = ".debug"
+
+            // CI's default debug.keystore is regenerated on fresh runners, so it
+            // cannot reliably update an APK signed by a previous runner.
+            // An explicit upgrade build MUST use the original v1.0.1 key.
+            if (providers.gradleProperty("pitchcraftUpgradeSigning").orNull == "true") {
+                require(rootProject.file("key.properties").isFile) {
+                    "Upgrade signing requested but key.properties is missing; refusing to build an incompatible APK."
+                }
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
         release {
             isMinifyEnabled = true
