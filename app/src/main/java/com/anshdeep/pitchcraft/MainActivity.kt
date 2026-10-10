@@ -103,6 +103,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -110,6 +111,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.shadow
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -138,11 +140,14 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val Blue = Color(0xFF2F6BFF)
-private val BlueSoft = Color(0xFFEAF0FF)
-private val Ink = Color(0xFF121722)
-private val Muted = Color(0xFF6D7480)
-private val Canvas = Color(0xFFF8F9FC)
+private val Blue = Color(0xFF3478F6)
+private val BlueDeep = Color(0xFF1557D6)
+private val BlueSoft = Color(0xFFEAF2FF)
+private val Sky = Color(0xFFDCEBFF)
+private val SkyGlow = Color(0xFFF2F7FF)
+private val Ink = Color(0xFF111318)
+private val Muted = Color(0xFF747B88)
+private val Canvas = Color(0xFFF7F8FC)
 private val CardBg = Color(0xFFFFFFFF)
 
 class MainActivity : ComponentActivity() {
@@ -252,6 +257,9 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
         val ids = db.mediaIdsForPerson(id)
         return media.filter { it.id in ids }
     }
+
+    suspend fun smartSearchIds(query: String): Set<Long> =
+        withContext(Dispatchers.IO) { db.searchVisualIndex(query) }
 }
 
 @Composable
@@ -319,19 +327,18 @@ private fun hasMediaPermission(context: Context): Boolean = when {
 
 private enum class Tab(val title: String, val icon: ImageVector) {
     Photos("Photos", Icons.Default.Photo),
+    People("People", Icons.Default.Person),
     Albums("Albums", Icons.Default.Album),
-    Explore("Explore", Icons.Default.Search)
+    Search("Search", Icons.Default.Search),
+    More("More", Icons.Default.GridView)
 }
 
 private sealed interface Overlay {
     data object None : Overlay
-    data object Search : Overlay
-    data object Settings : Overlay
     data class Album(val title: String, val ids: Set<Long>) : Overlay
     data class Person(val person: PersonGroup) : Overlay
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GalleryApp(vm: GalleryViewModel) {
     var tab by remember { mutableStateOf(Tab.Photos) }
@@ -347,8 +354,6 @@ private fun GalleryApp(vm: GalleryViewModel) {
 
     if (overlay != Overlay.None) {
         when (val current = overlay) {
-            Overlay.Search -> SearchScreen(vm, onBack = { overlay = Overlay.None }, onOpen = { viewer = it })
-            Overlay.Settings -> SettingsScreen(vm, onBack = { overlay = Overlay.None })
             is Overlay.Album -> CollectionScreen(
                 current.title,
                 vm.media.filter { it.id in current.ids },
@@ -366,41 +371,21 @@ private fun GalleryApp(vm: GalleryViewModel) {
     } else {
         Scaffold(
             containerColor = Canvas,
-            topBar = {
-                TopAppBar(
-                    modifier = Modifier.statusBarsPadding(),
-                    title = { Text(tab.title, fontSize = 30.sp, fontWeight = FontWeight.Bold, color = Ink) },
-                    actions = {
-                        IconButton(onClick = { overlay = Overlay.Search }) { Icon(Icons.Default.Search, "Search") }
-                        IconButton(onClick = { overlay = Overlay.Settings }) { Icon(Icons.Default.MoreVert, "More") }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Canvas)
-                )
-            },
             bottomBar = {
-                NavigationBar(containerColor = Color.White, modifier = Modifier.navigationBarsPadding()) {
-                    Tab.entries.forEach { item ->
-                        NavigationBarItem(
-                            selected = tab == item,
-                            onClick = { tab = item },
-                            icon = { Icon(item.icon, null) },
-                            label = { Text(item.title) }
-                        )
-                    }
-                }
+                FloatingBottomBar(selected = tab, onSelect = { tab = it })
             }
         ) { padding ->
-            Crossfade(tab, label = "tab") { current ->
+            Crossfade(tab, label = "premium-tab") { current ->
                 when (current) {
                     Tab.Photos -> PhotosScreen(vm, Modifier.padding(padding), onOpen = { viewer = it })
-                    Tab.Albums -> AlbumsScreen(vm, Modifier.padding(padding), onOpenAlbum = { overlay = it })
-                    Tab.Explore -> ExploreScreen(
+                    Tab.People -> PeopleTabScreen(
                         vm,
                         Modifier.padding(padding),
-                        onSearch = { overlay = Overlay.Search },
-                        onPerson = { overlay = Overlay.Person(it) },
-                        onCollection = { title, ids -> overlay = Overlay.Album(title, ids) }
+                        onPerson = { overlay = Overlay.Person(it) }
                     )
+                    Tab.Albums -> AlbumsScreen(vm, Modifier.padding(padding), onOpenAlbum = { overlay = it })
+                    Tab.Search -> SearchTabScreen(vm, Modifier.padding(padding), onOpen = { viewer = it })
+                    Tab.More -> MoreTabScreen(vm, Modifier.padding(padding))
                 }
             }
         }
@@ -408,6 +393,272 @@ private fun GalleryApp(vm: GalleryViewModel) {
 
     viewer?.let { item ->
         Viewer(vm, item, onClose = { viewer = null }, onChanged = { vm.refresh() })
+    }
+}
+
+@Composable
+private fun FloatingBottomBar(selected: Tab, onSelect: (Tab) -> Unit) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 18.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            color = Color.White.copy(alpha = 0.96f),
+            shape = RoundedCornerShape(30.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(18.dp, RoundedCornerShape(30.dp)),
+            tonalElevation = 2.dp
+        ) {
+            Row(
+                Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Tab.entries.forEach { item ->
+                    Surface(
+                        color = if (selected == item) Ink else Color.Transparent,
+                        contentColor = if (selected == item) Color.White else Ink,
+                        shape = RoundedCornerShape(17.dp),
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clickable { onSelect(item) }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(item.icon, item.title, modifier = Modifier.size(23.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PremiumHeader(title: String, subtitle: String, trailing: (@Composable () -> Unit)? = null) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(
+                    listOf(Sky, SkyGlow, Canvas)
+                )
+            )
+            .statusBarsPadding()
+            .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 22.dp)
+    ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f)) {
+                Text(title, fontSize = 30.sp, fontWeight = FontWeight.Bold, color = Ink)
+                Spacer(Modifier.height(5.dp))
+                Text(subtitle, fontSize = 14.sp, color = Muted, lineHeight = 19.sp)
+            }
+            trailing?.invoke()
+        }
+    }
+}
+
+@Composable
+private fun PeopleTabScreen(
+    vm: GalleryViewModel,
+    modifier: Modifier = Modifier,
+    onPerson: (PersonGroup) -> Unit
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(3),
+        modifier = modifier.fillMaxSize(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 22.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            PremiumHeader(
+                "People",
+                "Private face recognition and grouping, processed on this phone."
+            )
+        }
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Box(Modifier.padding(horizontal = 16.dp)) { FaceIndexCard(vm) }
+        }
+        if (vm.people.isEmpty()) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Surface(
+                    shape = RoundedCornerShape(28.dp),
+                    color = Color.White,
+                    modifier = Modifier.padding(16.dp).fillMaxWidth()
+                ) {
+                    Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Surface(shape = CircleShape, color = BlueSoft) {
+                            Icon(Icons.Default.Person, null, tint = Blue, modifier = Modifier.padding(16.dp).size(30.dp))
+                        }
+                        Spacer(Modifier.height(14.dp))
+                        Text("No people grouped yet", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ink)
+                        Spacer(Modifier.height(5.dp))
+                        Text("Start indexing and Pitchcraft will detect faces, create embeddings and group the same people locally.", color = Muted, fontSize = 13.sp, lineHeight = 19.sp)
+                        Spacer(Modifier.height(16.dp))
+                        Button(onClick = { vm.startScan() }, shape = RoundedCornerShape(18.dp)) { Text("Start local scan") }
+                    }
+                }
+            }
+        } else {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Text("Recognized people", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Ink, modifier = Modifier.padding(horizontal = 18.dp, vertical = 2.dp))
+            }
+            items(vm.people, key = { it.id }) { person ->
+                Column(
+                    Modifier.padding(horizontal = 3.dp).clickable { onPerson(person) },
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(26.dp),
+                        color = BlueSoft,
+                        modifier = Modifier.fillMaxWidth().aspectRatio(0.92f)
+                    ) {
+                        AsyncImage(
+                            model = person.coverPath?.let { File(it) },
+                            contentDescription = person.name,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    Spacer(Modifier.height(7.dp))
+                    Text(person.name ?: "Person", fontWeight = FontWeight.SemiBold, color = Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(person.count.toString() + " photos", fontSize = 11.sp, color = Muted)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchTabScreen(vm: GalleryViewModel, modifier: Modifier = Modifier, onOpen: (MediaItem) -> Unit) {
+    var query by remember { mutableStateOf("") }
+    var smartIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
+    LaunchedEffect(query) {
+        smartIds = if (query.trim().length >= 2) vm.smartSearchIds(query.trim()) else emptySet()
+    }
+    val q = query.trim()
+    val namedPeopleIds = if (q.isBlank()) emptySet() else vm.people
+        .filter { (it.name ?: "").contains(q, true) }
+        .flatMap { vm.mediaForPerson(it.id) }
+        .map { it.id }
+        .toSet()
+    val results = if (q.isBlank()) vm.media.take(120) else vm.media.filter {
+        it.name.contains(q, true) ||
+            it.bucket.contains(q, true) ||
+            it.id in namedPeopleIds ||
+            it.id in smartIds ||
+            (q.contains("video", true) && it.isVideo) ||
+            (q.contains("favorite", true) && it.id in vm.favorites)
+    }
+
+    Column(modifier.fillMaxSize()) {
+        PremiumHeader("Search", "Find people, folders, objects and text found inside your photos.")
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = Color.White,
+            modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
+            tonalElevation = 1.dp
+        ) {
+            TextField(
+                value = query,
+                onValueChange = { query = it },
+                placeholder = { Text("Search photos, text, people…") },
+                leadingIcon = { Icon(Icons.Default.Search, null, tint = Blue) },
+                singleLine = true,
+                shape = RoundedCornerShape(24.dp),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+        if (q.isBlank()) {
+            Row(
+                Modifier.padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf("Screenshots", "Videos", "Favorites").forEach { hint ->
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = BlueSoft,
+                        modifier = Modifier.clickable { query = hint }
+                    ) { Text(hint, color = BlueDeep, fontSize = 12.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(horizontal = 13.dp, vertical = 8.dp)) }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+        }
+        Row(Modifier.padding(horizontal = 18.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(if (q.isBlank()) "Recent library" else results.size.toString() + " results", fontWeight = FontWeight.Bold, color = Ink)
+            Spacer(Modifier.weight(1f))
+            Text(vm.stats.visualIndexed.toString() + " OCR indexed", color = Muted, fontSize = 11.sp)
+        }
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp)
+        ) {
+            items(results, key = { it.uri.toString() }) { MediaTile(it) { onOpen(it) } }
+        }
+    }
+}
+
+@Composable
+private fun MoreTabScreen(vm: GalleryViewModel, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxSize().verticalScroll(androidx.compose.foundation.rememberScrollState())) {
+        PremiumHeader("Settings", "Local-first gallery controls and private machine learning.")
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = Color.White,
+            modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()
+        ) {
+            Column(Modifier.padding(horizontal = 18.dp, vertical = 6.dp)) {
+                SettingsRow(Icons.Default.Person, "People & face grouping", vm.stats.people.toString() + " groups • " + vm.stats.faces + " faces")
+                Divider(color = Color(0xFFF0F1F4))
+                SettingsRow(Icons.Default.Search, "Text & visual search", vm.stats.visualIndexed.toString() + " photos indexed locally")
+                Divider(color = Color(0xFFF0F1F4))
+                SettingsRow(Icons.Default.Smartphone, "Original files", "Stay in normal Android storage")
+            }
+        }
+        Spacer(Modifier.height(14.dp))
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = Color.White,
+            modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()
+        ) {
+            Column(Modifier.padding(18.dp)) {
+                Text("Local ML index", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Ink)
+                Spacer(Modifier.height(7.dp))
+                Text("Bundled face detector + MobileFaceNet recognition + local grouping + OCR + image labels. No image-generation or chat model.", color = Muted, fontSize = 13.sp, lineHeight = 19.sp)
+                Spacer(Modifier.height(16.dp))
+                if (vm.stats.running) {
+                    LinearProgressIndicator(progress = { vm.stats.progress.coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().height(7.dp), color = Blue)
+                    Spacer(Modifier.height(8.dp))
+                    Text(vm.stats.current, color = Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                } else {
+                    Button(
+                        onClick = { vm.startScan() },
+                        shape = RoundedCornerShape(18.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text(if (vm.stats.scanned == 0) "Start smart indexing" else "Scan new photos") }
+                    Spacer(Modifier.height(10.dp))
+                    OutlinedButton(
+                        onClick = { vm.resetAndScan() },
+                        shape = RoundedCornerShape(18.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Rebuild local index") }
+                }
+            }
+        }
+        Spacer(Modifier.height(30.dp))
     }
 }
 
