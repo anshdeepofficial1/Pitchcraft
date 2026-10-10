@@ -212,44 +212,6 @@ internal fun ReferenceGallerySurface(
             }
         }
 
-        item(key = "reference_collection_label", span = { GridItemSpan(maxLineSpan) }) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(
-                        "Your collection",
-                        color = ReferencePalette.Cream,
-                        fontSize = 19.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = (-.4).sp
-                    )
-                    Text(
-                        "Every moment, beautifully kept",
-                        color = ReferencePalette.Secondary,
-                        fontSize = 11.sp
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .size(35.dp)
-                        .clip(CircleShape)
-                        .border(1.dp, Color.White.copy(alpha = 0.22f), CircleShape)
-                        .background(Color.White.copy(alpha = 0.06f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        androidx.compose.ui.graphics.vector.ImageVector.vectorResource(R.drawable.ic_ms_image),
-                        contentDescription = null,
-                        tint = ReferencePalette.Cream,
-                        modifier = Modifier.size(17.dp)
-                    )
-                }
-            }
-        }
-
         items(count = (pagedMedia.itemCount - firstMediaIndices.size).coerceAtLeast(0)) { visibleIndex ->
             // Exclude the two hero records without emitting invisible grid cells.
             var mediaIndex = visibleIndex
