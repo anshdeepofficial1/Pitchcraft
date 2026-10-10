@@ -457,129 +457,195 @@ fun AlbumsScreen(
                 enter = expandVertically(animationSpec = MotionTokens.snappySpring()) + fadeIn(animationSpec = MotionTokens.snappySpring()),
                 exit = shrinkVertically(animationSpec = MotionTokens.snappySpring()) + fadeOut(animationSpec = MotionTokens.snappySpring())
             ) {
-                if (people.isEmpty() && !faceProgress.isIndexing) {
-                    Surface(
-                        shape = ShapeLargeIncreased,
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { viewModel.startFaceIndexing() }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(18.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    if (people.isEmpty() && !faceProgress.isIndexing) {
+                        Surface(
+                            onClick = viewModel::startFaceIndexing,
+                            shape = RoundedCornerShape(29.dp),
+                            color = ReferencePalette.SoftCard,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, ReferencePalette.Outline),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primary
-                            ) {
-                                Icon(
-                                    imageVector = ImageVector.vectorResource(R.drawable.ic_ms_person),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.padding(12.dp).size(24.dp)
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    "Find people on this device",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    "Local face detection and grouping. Originals never leave your phone.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Text(
-                                "Start",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                } else {
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(horizontal = SpacingTokens.XS),
-                        horizontalArrangement = Arrangement.spacedBy(SpacingTokens.M)
-                    ) {
-                        if (faceProgress.isIndexing) {
-                            item(key = "people_scan_progress") {
-                                Surface(
-                                    onClick = onPeopleProgressClick,
-                                    shape = ShapeLargeIncreased,
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    shadowElevation = 4.dp,
-                                    modifier = Modifier.width(190.dp)
-                                ) {
-                                    Column(Modifier.padding(16.dp)) {
-                                        Text(
-                                            faceProgress.stage.ifBlank { "Scanning people" },
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Spacer(Modifier.height(7.dp))
-                                        Text(
-                                            "${faceProgress.progress} / ${faceProgress.total} images",
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
-                                        Text(
-                                            "${faceProgress.facesFound} faces found",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        faceProgress.currentImageName?.let {
-                                            Spacer(Modifier.height(6.dp))
-                                            Text(
-                                                it,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        items(people, key = { "person_${it.clusterId}" }) { person ->
-                            Column(
+                            Row(
                                 modifier = Modifier
-                                    .width(112.dp)
-                                    .clickable { onPersonClick(person.clusterId.toString()) },
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 18.dp, vertical = 20.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(14.dp)
                             ) {
-                                Surface(
-                                    shape = ShapeLargeIncreased,
-                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .aspectRatio(0.92f)
+                                Box(
+                                    Modifier
+                                        .size(58.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            Brush.linearGradient(
+                                                listOf(ReferencePalette.AmberBright, ReferencePalette.Amber)
+                                            )
+                                        ),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    AsyncImage(
-                                        model = person.coverCropPath?.let { java.io.File(it) },
-                                        contentDescription = person.name ?: "Person",
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize()
+                                    Icon(
+                                        imageVector = ImageVector.vectorResource(R.drawable.ic_reference_people),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(27.dp),
+                                        tint = Color.White
                                     )
                                 }
-                                Spacer(Modifier.height(7.dp))
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                                ) {
+                                    Text(
+                                        "Find familiar faces",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = ReferencePalette.Cream
+                                    )
+                                    Text(
+                                        "Create private collections of people in your photos.",
+                                        color = ReferencePalette.Secondary,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
                                 Text(
-                                    person.name ?: "Person",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    "Start",
+                                    color = ReferencePalette.AmberBright,
+                                    style = MaterialTheme.typography.labelLarge
                                 )
-                                Text(
-                                    "${person.faceCount} faces",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        }
+                    }
+                    if (faceProgress.isIndexing) {
+                        // Never put this in a fixed-width LazyRow item: it must not
+                        // collapse or leave a blank right-hand strip after Start.
+                        Surface(
+                            onClick = onPeopleProgressClick,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(29.dp),
+                            color = ReferencePalette.SoftCard,
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp, ReferencePalette.Outline
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(18.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                                    ) {
+                                        Text(
+                                            "Organizing your people",
+                                            color = ReferencePalette.Cream,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            faceProgress.stage.ifBlank { "Finding faces on this device" },
+                                            color = ReferencePalette.Secondary,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Text(
+                                        if (faceProgress.total > 0)
+                                            "${(faceProgress.progress * 100 / faceProgress.total).coerceIn(0,100)}%"
+                                        else "Working",
+                                        color = ReferencePalette.AmberBright,
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                }
+                                androidx.compose.material3.LinearProgressIndicator(
+                                    progress = {
+                                        if (faceProgress.total > 0)
+                                            (faceProgress.progress.toFloat() / faceProgress.total).coerceIn(0f, 1f)
+                                        else 0f
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(6.dp)
+                                        .clip(CircleShape),
+                                    color = ReferencePalette.AmberBright,
+                                    trackColor = ReferencePalette.Espresso
                                 )
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        "${faceProgress.progress} / ${faceProgress.total} photos",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = ReferencePalette.Secondary
+                                    )
+                                    Text(
+                                        "${faceProgress.facesFound} faces found  •  View details",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = ReferencePalette.AmberBright
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    if (people.isNotEmpty()) {
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(horizontal = SpacingTokens.XS),
+                            horizontalArrangement = Arrangement.spacedBy(17.dp)
+                        ) {
+                            items(people, key = { "person_${it.clusterId}" }) { person ->
+                                Column(
+                                    modifier = Modifier
+                                        .width(96.dp)
+                                        .clickable { onPersonClick(person.clusterId.toString()) },
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(91.dp)
+                                            .clip(CircleShape)
+                                            .background(ReferencePalette.Espresso)
+                                            .border(
+                                                1.5.dp,
+                                                ReferencePalette.Amber.copy(alpha = 0.70f),
+                                                CircleShape
+                                            )
+                                    ) {
+                                        AsyncImage(
+                                            model = person.coverCropPath?.let { java.io.File(it) },
+                                            contentDescription = person.name ?: "Person",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .padding(3.dp)
+                                                .clip(CircleShape)
+                                        )
+                                    }
+                                    Text(
+                                        person.name?.takeIf { it.isNotBlank() } ?: "Person",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = ReferencePalette.Cream,
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        "${person.faceCount} photos",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = ReferencePalette.Secondary
+                                    )
+                                }
                             }
                         }
                     }
