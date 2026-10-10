@@ -70,13 +70,13 @@ jobs:
         run: |
           chmod +x ./gradlew
           ./gradlew :app:testDebugUnitTest :app:assembleDebug -PpitchcraftUpgradeSigning=true --stacktrace
-          cp app/build/outputs/apk/debug/app-debug.apk Pitchcraft-${{ github.run_number }}-stable.apk
+          cp app/build/outputs/apk/debug/app-debug.apk Pitchcraft-1.0.2-universal-stable.apk
       - name: Verify package, version, signer, ABIs and 16 KiB compatibility
         env:
           EXPECTED_CERT: ${{ secrets.PITCHCRAFT_CERT_SHA256 }}
         run: |
           set -euo pipefail
-          APK="$(find . -maxdepth 1 -name 'Pitchcraft-*-stable.apk' -print -quit)"
+          APK="Pitchcraft-1.0.2-universal-stable.apk"
           SDKROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           TOOLS="$SDKROOT/build-tools/36.0.0"
           "$TOOLS/apksigner" verify --verbose "$APK"
@@ -95,7 +95,7 @@ jobs:
         with:
           name: Pitchcraft-1.0.2-stable-signed
           path: |
-            Pitchcraft-*-stable.apk
+            Pitchcraft-1.0.2-universal-stable.apk
             Pitchcraft-SHA256.txt
           if-no-files-found: error
           retention-days: 90
@@ -104,9 +104,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          APK="$(find . -maxdepth 1 -name 'Pitchcraft-*-stable.apk' -print -quit)"
+          APK="Pitchcraft-1.0.2-universal-stable.apk"
           gh release view v1.0.2 >/dev/null 2>&1 || gh release create v1.0.2 --title "Pitchcraft 1.0.2" --notes "Stable universal APK for Android 8 through Android 16. Includes 16 KiB page-size support."
-          gh release upload v1.0.2 "$APK#Pitchcraft-1.0.2-universal-stable.apk" Pitchcraft-SHA256.txt --clobber
+          gh release upload v1.0.2 "$APK" Pitchcraft-SHA256.txt --clobber
       - name: Remove temporary signing material
         if: always()
         run: rm -f key.properties "$RUNNER_TEMP/pitchcraft-stable.jks"
