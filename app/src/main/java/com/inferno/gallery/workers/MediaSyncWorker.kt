@@ -57,7 +57,10 @@ class MediaSyncWorker(
                     continue
                 }
                 val dbItem = dbMap[media.id]
-                // For incremental, anything in deltaList needs updating/inserting
+                val unchanged = dbItem != null &&
+                    dbItem.dateModified == media.dateModified &&
+                    dbItem.size == media.size
+                // Preserve ML indexes only when the underlying media did not change.
                 toInsert.add(
                     CoreMediaEntity(
                         id = media.id,
@@ -71,7 +74,8 @@ class MediaSyncWorker(
                         mimeType = dbItem?.mimeType,
                         isVideo = media.isVideo,
                         durationMs = media.durationMs,
-                        isIndexedOcr = dbItem?.isIndexedOcr ?: false,
+                        isIndexedOcr = if (unchanged) dbItem?.isIndexedOcr == true else false,
+                        isIndexedFaces = if (unchanged) dbItem?.isIndexedFaces == true else false,
                         pHash = dbItem?.pHash,
                         latitude = dbItem?.latitude,
                         longitude = dbItem?.longitude,
@@ -97,16 +101,47 @@ class MediaSyncWorker(
                 database.mediaDao().deleteByIds(toDelete)
             }
 
+            val excludedFolders = settingsRepo.excludedFoldersFlow.first()
+
             val autoIndexSmartEnabled = settingsRepo.smartSearchAutoIndexFlow.first()
             val smartSearchEngine = com.inferno.gallery.data.ai.SmartSearchEngine.getInstance(applicationContext)
-            val unindexedSmartCount = database.embeddingDao().getUnindexedMediaIds().size
+            val eligibleIds = database.mediaDao().getAllMedia()
+                .filter { !it.isVideo && it.bucketName != "Trash" && !excludedFolders.contains(it.bucketName) }
+                .map { it.id }
+                .toHashSet()
+            val unindexedSmartCount = database.embeddingDao().getUnindexedMediaIds().count { it in eligibleIds }
             if (autoIndexSmartEnabled && smartSearchEngine.isModelDownloaded() && unindexedSmartCount > 0) {
-                Log.d("MediaSyncWorker", "Auto-indexing $unindexedSmartCount images for Smart Search...")
+                Log.d("MediaSyncWorker", "Auto-indexing $unindexedSmartCount scoped images for Smart Search...")
                 val indexRequest = androidx.work.OneTimeWorkRequestBuilder<SmartSearchIndexWorker>().build()
                 androidx.work.WorkManager.getInstance(applicationContext).enqueueUniqueWork(
                     "SmartSearchIndexWorker",
                     androidx.work.ExistingWorkPolicy.KEEP,
                     indexRequest
+                )
+            }
+
+            val ocrEnabled = settingsRepo.ocrIndexingEnabledFlow.first()
+            val unindexedOcrCount = database.mediaDao().getUnindexedOcrMedia()
+                .count { !excludedFolders.contains(it.bucketName) }
+            if (ocrEnabled && unindexedOcrCount > 0) {
+                val ocrRequest = androidx.work.OneTimeWorkRequestBuilder<OcrIndexWorker>().build()
+                androidx.work.WorkManager.getInstance(applicationContext).enqueueUniqueWork(
+                    "OcrIndexWorker",
+                    androidx.work.ExistingWorkPolicy.KEEP,
+                    ocrRequest
+                )
+            }
+
+            val faceEnabled = settingsRepo.faceIndexingEnabledFlow.first()
+            val unindexedFaceCount = database.mediaDao().getUnindexedFaceMedia()
+                .count { !excludedFolders.contains(it.bucketName) }
+            if (faceEnabled && unindexedFaceCount > 0) {
+                Log.d("MediaSyncWorker", "Auto-indexing $unindexedFaceCount scoped images for People...")
+                val faceRequest = androidx.work.OneTimeWorkRequestBuilder<FaceIndexWorker>().build()
+                androidx.work.WorkManager.getInstance(applicationContext).enqueueUniqueWork(
+                    "FaceIndexWorker",
+                    androidx.work.ExistingWorkPolicy.KEEP,
+                    faceRequest
                 )
             }
 
