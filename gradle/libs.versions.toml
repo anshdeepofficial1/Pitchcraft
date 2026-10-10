@@ -37,7 +37,9 @@ mlkitText = "16.0.1"
 mlkitFace = "16.1.7"
 
 # ONNX Runtime
-onnxruntime = "1.18.0"
+# ONNX Runtime Android 1.18 lacks modern 16 KB ARM64 memory page support.
+# Newer native binaries are required for Android 16 devices with 16 KB pages.
+onnxruntime = "1.24.1"
 
 
 # Background Processing
