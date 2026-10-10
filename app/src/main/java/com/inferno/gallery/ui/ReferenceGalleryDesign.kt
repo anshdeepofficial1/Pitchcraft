@@ -250,10 +250,14 @@ internal fun ReferenceGallerySurface(
             }
         }
 
-        items(count = pagedMedia.itemCount) { index ->
-            val entry = pagedMedia[index]
-            if (index !in firstMediaIndices) {
-                when (entry) {
+        items(count = (pagedMedia.itemCount - firstMediaIndices.size).coerceAtLeast(0)) { visibleIndex ->
+            // Exclude the two hero records without emitting invisible grid cells.
+            var mediaIndex = visibleIndex
+            firstMediaIndices.forEach { heroIndex ->
+                if (mediaIndex >= heroIndex) mediaIndex += 1
+            }
+            val entry = pagedMedia[mediaIndex]
+            when (entry) {
                     is GalleryListItem.Item -> {
                         val photo = entry.galleryItem
                         ReferencePhotoCard(
@@ -288,7 +292,6 @@ internal fun ReferenceGallerySurface(
                         )
                     }
                 }
-            }
         }
     }
 }
