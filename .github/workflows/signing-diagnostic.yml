@@ -49,6 +49,9 @@ jobs:
           old_cert="$("$SIGNER" verify --print-certs "$OLD" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
           new_cert="$("$SIGNER" verify --print-certs "$NEW" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
           test -n "$old_cert" && test -n "$new_cert"
+          echo "Old APK certificate SHA-256: $old_cert"
+          echo "New APK certificate SHA-256: $new_cert"
+          sha256sum "$OLD" "$NEW"
           {
             echo "## Existing-build compatibility diagnostic"
             echo ""
@@ -59,9 +62,11 @@ jobs:
             echo ""
           } >> "$GITHUB_STEP_SUMMARY"
           if [[ "$old_cert" == "$new_cert" ]]; then
+            echo "RESULT: MATCHING_CERTIFICATES"
             echo "## Matching build certificates" >> "$GITHUB_STEP_SUMMARY"
             echo "This is not proof of the certificate on the user's installed app. Verify that separately." >> "$GITHUB_STEP_SUMMARY"
           else
+            echo "RESULT: DIFFERENT_CERTIFICATES"
             echo "::warning::These two GitHub debug builds use different signing certificates. A normal in-place update is impossible between them."
             echo "## DIFFERENT signing certificates" >> "$GITHUB_STEP_SUMMARY"
             echo "A normal in-place update from run #67 to run #143 is impossible. Do NOT uninstall the old app or clear data. Obtain the original private signing key or use an independently verified local data migration." >> "$GITHUB_STEP_SUMMARY"
