@@ -325,7 +325,27 @@ object DatabaseProvider {
 
             val MIGRATION_25_26 = object : androidx.room.migration.Migration(25, 26) {
                 override fun migrate(db: SupportSQLiteDatabase) {
-                    db.execSQL("ALTER TABLE core_media ADD COLUMN is_indexed_faces INTEGER NOT NULL DEFAULT 0")
+                    // v25 already contains is_indexed_faces in core_media. Older test builds
+                    // may not, so inspect the live schema before adding it. Running ALTER
+                    // TABLE unconditionally here caused "duplicate column name" on upgrade.
+                    var hasFaceIndexColumn = false
+                    db.query("PRAGMA table_info(core_media)").use { cursor ->
+                        val nameIndex = cursor.getColumnIndex("name")
+                        while (cursor.moveToNext()) {
+                            if (nameIndex >= 0 && cursor.getString(nameIndex) == "is_indexed_faces") {
+                                hasFaceIndexColumn = true
+                                break
+                            }
+                        }
+                    }
+                    if (!hasFaceIndexColumn) {
+                        db.execSQL("ALTER TABLE core_media ADD COLUMN is_indexed_faces INTEGER NOT NULL DEFAULT 0")
+                    }
+
+                    // v25 intentionally removed the experimental face tables. Recreate the
+                    // final v26 schema without touching the user's media/vault data.
+                    db.execSQL("DROP TABLE IF EXISTS faces")
+                    db.execSQL("DROP TABLE IF EXISTS person_clusters")
                     db.execSQL("""
                         CREATE TABLE IF NOT EXISTS faces (
                             id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
