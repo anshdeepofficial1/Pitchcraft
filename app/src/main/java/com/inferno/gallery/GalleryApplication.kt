@@ -126,6 +126,9 @@ class GalleryApplication : Application(), SingletonImageLoader.Factory, androidx
                 WorkManager.getInstance(this@GalleryApplication).cancelUniqueWork("SmartSearchIndexWorker")
             }
 
+            // Lightweight GitHub release check runs independently of local ML.
+            com.inferno.gallery.workers.UpdateCheckWorker.schedule(this@GalleryApplication)
+
             val autoCleanEnabled = settingsRepo.autoCleanTrashEnabledFlow.first()
             if (autoCleanEnabled) {
                 val workRequest =
