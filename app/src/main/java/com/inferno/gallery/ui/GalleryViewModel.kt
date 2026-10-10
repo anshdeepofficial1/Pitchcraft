@@ -437,9 +437,28 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
     private val _personMedia = MutableStateFlow<List<GalleryItem>>(emptyList())
     val personMedia: StateFlow<List<GalleryItem>> = _personMedia.asStateFlow()
 
+    private val _personFaces = MutableStateFlow<List<com.inferno.gallery.data.db.FaceEntity>>(emptyList())
+    val personFaces: StateFlow<List<com.inferno.gallery.data.db.FaceEntity>> = _personFaces.asStateFlow()
+
+    fun startFaceIndexing() {
+        val request = androidx.work.OneTimeWorkRequestBuilder<com.inferno.gallery.workers.FaceIndexWorker>()
+            .build()
+        androidx.work.WorkManager.getInstance(getApplication()).enqueueUniqueWork(
+            "FaceIndexWorker",
+            androidx.work.ExistingWorkPolicy.REPLACE,
+            request
+        )
+    }
+
+    fun stopFaceIndexing() {
+        androidx.work.WorkManager.getInstance(getApplication()).cancelUniqueWork("FaceIndexWorker")
+    }
+
     fun loadPersonMedia(clusterId: Long) {
         viewModelScope.launch(Dispatchers.IO) {
-            val ids = database.faceDao().getMediaIdsForCluster(clusterId)
+            val faces = database.faceDao().getFacesForCluster(clusterId)
+            _personFaces.value = faces
+            val ids = faces.map { it.mediaId }.distinct()
             val excluded = excludedFolders.value
             _personMedia.value = database.mediaDao().getMediaByIdsList(ids)
                 .filter { !excluded.contains(it.bucketName) && it.bucketName != "Trash" }
