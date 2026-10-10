@@ -105,8 +105,12 @@ fun SearchScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .height(56.dp),
             shape = ShapeExtraLarge,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shadowElevation = 0.dp
+            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.82f),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+            ),
+            shadowElevation = 8.dp
         ) {
             Row(
                 modifier = Modifier

@@ -349,28 +349,18 @@ fun SettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        categories.forEachIndexed { index, cat ->
-                            val shape = when {
-                                categories.size == 1 -> ShapeLarge
-                                index == 0 -> RoundedCornerShape(
-                                    topStart = 16.dp,
-                                    topEnd = 16.dp,
-                                    bottomStart = 4.dp,
-                                    bottomEnd = 4.dp
-                                )
-                                index == categories.size - 1 -> RoundedCornerShape(
-                                    topStart = 4.dp,
-                                    topEnd = 4.dp,
-                                    bottomStart = 16.dp,
-                                    bottomEnd = 16.dp
-                                )
-                                else -> RoundedCornerShape(4.dp)
-                            }
+                        categories.forEach { cat ->
+                            val shape = RoundedCornerShape(22.dp)
                             Surface(
                                 shape = shape,
-                                color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.72f),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.32f)
+                                ),
+                                shadowElevation = 2.dp,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 SettingsCategoryRow(
@@ -513,7 +503,7 @@ fun SettingsScreen(
                                     {
                                         SwitchSettingItem(
                                             title = "Use System Font",
-                                            subtitle = "Use device default font instead of Photon's custom expressive typography",
+                                            subtitle = "Use the device font instead of Pitchcraft's tuned premium typography",
                                             icon = ImageVector.vectorResource(R.drawable.ic_ms_text_fields),
                                             checked = useSystemFont,
                                             onCheckedChange = { viewModel.setUseSystemFont(it) }
