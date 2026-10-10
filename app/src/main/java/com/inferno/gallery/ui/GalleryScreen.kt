@@ -355,6 +355,8 @@ fun GalleryScreen(
             ReferenceGallerySurface(
                 pagedMedia = pagedMedia,
                 lazyGridState = lazyGridState,
+                viewMode = viewMode,
+                gridCellsCount = gridCellsCount,
                 onMediaClick = onMediaClick,
                 onMediaLongClick = onMediaLongClick,
                 isSelectionMode = isSelectionMode,
