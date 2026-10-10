@@ -94,12 +94,12 @@ private fun ReferenceChip(title: String, selected: Boolean, onClick: () -> Unit)
                 if (selected) Brush.horizontalGradient(
                     listOf(ReferencePalette.AmberBright, ReferencePalette.Amber)
                 ) else Brush.horizontalGradient(
-                    listOf(Color(0xFF302A24).copy(alpha = .86f), Color(0xFF231E1A).copy(alpha = .86f))
+                    listOf(Color(0xFF302A24).copy(alpha = 0.86f), Color(0xFF231E1A).copy(alpha = 0.86f))
                 )
             )
             .border(
                 0.75.dp,
-                if (selected) Color(0xFFEEBD7D) else Color.White.copy(alpha = .27f),
+                if (selected) Color(0xFFEEBD7D) else Color.White.copy(alpha = 0.27f),
                 CircleShape
             )
             .clickable(onClick = onClick)
@@ -167,7 +167,7 @@ internal fun ReferenceGallerySurface(
                     ReferencePhotoCard(
                         item = first,
                         modifier = Modifier
-                            .fillMaxWidth(if (second != null) .79f else 1f)
+                            .fillMaxWidth(if (second != null) 0.79f else 1f)
                             .height(263.dp)
                             .align(Alignment.TopStart),
                         onClick = { onMediaClick(first) },
@@ -178,7 +178,7 @@ internal fun ReferenceGallerySurface(
                         ReferencePhotoCard(
                             item = second,
                             modifier = Modifier
-                                .fillMaxWidth(.81f)
+                                .fillMaxWidth(0.81f)
                                 .height(240.dp)
                                 .align(Alignment.BottomEnd)
                                 .offset(x = (-5).dp, y = (-3).dp)
@@ -216,8 +216,8 @@ internal fun ReferenceGallerySurface(
                     modifier = Modifier
                         .size(35.dp)
                         .clip(CircleShape)
-                        .border(1.dp, Color.White.copy(alpha = .22f), CircleShape)
-                        .background(Color.White.copy(alpha = .06f)),
+                        .border(1.dp, Color.White.copy(alpha = 0.22f), CircleShape)
+                        .background(Color.White.copy(alpha = 0.06f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -281,7 +281,7 @@ private fun ReferencePhotoCard(
         modifier = modifier
             .clip(RoundedCornerShape(29.dp))
             .background(ReferencePalette.SoftCard)
-            .border(0.9.dp, Color.White.copy(alpha = .22f), RoundedCornerShape(29.dp))
+            .border(0.9.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(29.dp))
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
     ) {
         AsyncImage(
@@ -295,9 +295,9 @@ private fun ReferencePhotoCard(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        0f to Color.Black.copy(alpha = .24f),
-                        .38f to Color.Transparent,
-                        1f to Color.Black.copy(alpha = .80f)
+                        0f to Color.Black.copy(alpha = 0.24f),
+                        0.38f to Color.Transparent,
+                        1f to Color.Black.copy(alpha = 0.80f)
                     )
                 )
         )
@@ -310,7 +310,7 @@ private fun ReferencePhotoCard(
                 fontSize = 9.sp,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 1.6.sp,
-                color = Color.White.copy(alpha = .80f)
+                color = Color.White.copy(alpha = 0.80f)
             )
             Text(
                 item.name.substringBeforeLast('.').ifBlank { "Untitled memory" },
@@ -328,8 +328,8 @@ private fun ReferencePhotoCard(
                 .padding(13.dp)
                 .size(34.dp)
                 .clip(CircleShape)
-                .background(Color.Black.copy(alpha = .29f))
-                .border(.6.dp, Color.White.copy(alpha = .16f), CircleShape),
+                .background(Color.Black.copy(alpha = 0.29f))
+                .border(0.6.dp, Color.White.copy(alpha = 0.16f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -362,7 +362,7 @@ internal fun ReferenceEmptyGallery(modifier: Modifier = Modifier, subtitle: Stri
                     .size(108.dp)
                     .clip(RoundedCornerShape(33.dp))
                     .background(Brush.linearGradient(listOf(Color(0xFF3D2412), Color(0xFF18130E))))
-                    .border(1.dp, ReferencePalette.Amber.copy(alpha = .55f), RoundedCornerShape(33.dp)),
+                    .border(1.dp, ReferencePalette.Amber.copy(alpha = 0.55f), RoundedCornerShape(33.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
