@@ -5,7 +5,6 @@ ACTIVITY="com.inferno.gallery.MainActivity"
 echo "Granting runtime media permissions to capture real empty-gallery UI"
 adb shell pm grant "$PACKAGE" android.permission.READ_MEDIA_IMAGES
 adb shell pm grant "$PACKAGE" android.permission.READ_MEDIA_VIDEO
-adb shell appops set "$PACKAGE" MANAGE_EXTERNAL_STORAGE allow
 adb shell am force-stop "$PACKAGE"
 adb shell am start -W -n "$PACKAGE/$ACTIVITY"
 sleep 4
@@ -25,7 +24,7 @@ import re, xml.etree.ElementTree as ET
 try:
     root=ET.parse('pitchcraft-onboarding.xml').getroot()
     for node in root.iter('node'):
-        if node.get('text') == 'Continue to Gallery':
+        if node.get('text') in ('Enter Gallery', 'Continue to Gallery'):
             numbers=[int(v) for v in re.findall(r'\d+',node.get('bounds',''))]
             if len(numbers)==4:
                 print((numbers[0]+numbers[2])//2,(numbers[1]+numbers[3])//2)
@@ -36,7 +35,7 @@ PY
 )"
   if [ -n "$COORD" ]; then
     read -r TAP_X TAP_Y <<< "$COORD"
-    echo "Continue button is at $TAP_X,$TAP_Y (attempt $attempt)"
+    echo "Enter Gallery button is at $TAP_X,$TAP_Y (attempt $attempt)"
     adb shell input tap "$TAP_X" "$TAP_Y"
   fi
   sleep 4
