@@ -129,7 +129,7 @@ fun PermissionOnboardingScreen(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         Image(
-                            painter = painterResource(id = R.drawable.launcher_icon_fg),
+                            painter = painterResource(id = R.drawable.ic_pitchcraft_material),
                             contentDescription = "Pitchcraft",
                             modifier = Modifier
                                 .size(72.dp)
