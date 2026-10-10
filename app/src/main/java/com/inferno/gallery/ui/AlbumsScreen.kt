@@ -351,86 +351,67 @@ fun AlbumsScreen(
                 )
             }
 
-            item(key = "content_more", span = { GridItemSpan(maxLineSpan) }) {
-                AnimatedVisibility(
-                    visible = moreExpanded,
-                    enter = expandVertically(animationSpec = MotionTokens.snappySpring()) + fadeIn(animationSpec = MotionTokens.snappySpring()),
-                    exit = shrinkVertically(animationSpec = MotionTokens.snappySpring()) + fadeOut(animationSpec = MotionTokens.snappySpring())
-                ) {
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(horizontal = SpacingTokens.XS),
-                        horizontalArrangement = Arrangement.spacedBy(SpacingTokens.M)
-                    ) {
-                        items(
-                            items = unpinnedAlbums,
-                            key = { "folder_${it.bucketName}" }
-                        ) { bucket ->
-                            Box(modifier = Modifier.width(116.dp)) {
-                                var showPinMenu by remember { mutableStateOf(false) }
-                                AlbumCard(
-                                    sharedTransitionScope = sharedTransitionScope,
-                                    animatedVisibilityScope = animatedVisibilityScope,
-                                    bucket = bucket,
-                                    showAlbumSize = showAlbumSize,
-                                    onClick = { onAlbumClick(bucket.bucketName) },
-                                    onLongPress = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        showPinMenu = true
+            // Use the same full two-column grid as pinned albums.
+            // A narrow horizontal strip left an ugly empty side on small libraries.
+            if (moreExpanded) {
+                items(
+                    items = unpinnedAlbums,
+                    key = { "folder_${it.bucketName}" },
+                    span = { GridItemSpan(6) }
+                ) { bucket ->
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        var showPinMenu by remember { mutableStateOf(false) }
+                        AlbumCard(
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope,
+                            bucket = bucket,
+                            showAlbumSize = showAlbumSize,
+                            onClick = { onAlbumClick(bucket.bucketName) },
+                            onLongPress = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                showPinMenu = true
+                            }
+                        )
+                        DropdownMenu(
+                            expanded = showPinMenu,
+                            onDismissRequest = { showPinMenu = false },
+                            shape = ShapeExtraLarge,
+                            containerColor = ReferencePalette.SoftCard
+                        ) {
+                            val isPinned = bucket.bucketName in userPinnedNames
+                            DropdownMenuItem(
+                                text = { Text(if (isPinned) "Unpin Album" else "Pin Album") },
+                                leadingIcon = {
+                                    Icon(ImageVector.vectorResource(
+                                        if (isPinned) R.drawable.ic_ms_folder_off else R.drawable.ic_ms_folder
+                                    ), contentDescription = null)
+                                },
+                                onClick = {
+                                    showPinMenu = false
+                                    viewModel.togglePinAlbum(bucket.bucketName)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Change Cover") },
+                                leadingIcon = {
+                                    Icon(ImageVector.vectorResource(R.drawable.ic_ms_image), contentDescription = null)
+                                },
+                                onClick = {
+                                    showPinMenu = false
+                                    onChangeCover(bucket.bucketName)
+                                }
+                            )
+                            if (customCovers.containsKey(bucket.bucketName)) {
+                                DropdownMenuItem(
+                                    text = { Text("Reset to Default Cover") },
+                                    leadingIcon = {
+                                        Icon(ImageVector.vectorResource(R.drawable.ic_ms_delete), contentDescription = null)
+                                    },
+                                    onClick = {
+                                        showPinMenu = false
+                                        onDeleteCover(bucket.bucketName)
                                     }
                                 )
-                                DropdownMenu(
-                                    expanded = showPinMenu,
-                                    onDismissRequest = { showPinMenu = false },
-                                    shape = ShapeExtraLarge,
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                                ) {
-                                    val isPinned = bucket.bucketName in userPinnedNames
-                                    DropdownMenuItem(
-                                        text = { Text(if (isPinned) "Unpin Album" else "Pin Album", style = MaterialTheme.typography.bodyMedium) },
-                                        leadingIcon = {
-                                            Icon(
-                                                imageVector = ImageVector.vectorResource(if (isPinned) R.drawable.ic_ms_folder_off else R.drawable.ic_ms_folder),
-                                                contentDescription = null,
-                                                modifier = Modifier.size(IconSizeTokens.M)
-                                            )
-                                        },
-                                        onClick = {
-                                            showPinMenu = false
-                                            viewModel.togglePinAlbum(bucket.bucketName)
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Change Cover", style = MaterialTheme.typography.bodyMedium) },
-                                        leadingIcon = {
-                                            Icon(
-                                                imageVector = ImageVector.vectorResource(R.drawable.ic_ms_image),
-                                                contentDescription = null,
-                                                modifier = Modifier.size(IconSizeTokens.M)
-                                            )
-                                        },
-                                        onClick = {
-                                            showPinMenu = false
-                                            onChangeCover(bucket.bucketName)
-                                        }
-                                    )
-                                    if (customCovers.containsKey(bucket.bucketName)) {
-                                        DropdownMenuItem(
-                                            text = { Text("Reset to Default Cover", style = MaterialTheme.typography.bodyMedium) },
-                                            leadingIcon = {
-                                                Icon(
-                                                    imageVector = ImageVector.vectorResource(R.drawable.ic_ms_delete),
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(IconSizeTokens.M)
-                                                )
-                                            },
-                                            onClick = {
-                                                showPinMenu = false
-                                                onDeleteCover(bucket.bucketName)
-                                            }
-                                        )
-                                    }
-                                }
                             }
                         }
                     }
