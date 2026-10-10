@@ -138,14 +138,57 @@ if [ -n "$START_COORD" ]; then
 else
   echo "::warning::People Start card not visible at this scroll position; scanning capture skipped."
 fi
-tap_normalized 65 93
-adb exec-out screencap -p > pitchcraft-search-reference.png
-tap_normalized 17 93
-tap_normalized 62 15
+# Click actual Compose accessibility labels instead of arbitrary tap positions.
+# The former test called the People dock icon "Search", so it could pass
+# without ever entering Search. These checks deliberately fail on a missing route.
+tap_accessibility() {
+  local wanted="$1"
+  adb shell uiautomator dump /sdcard/pitchcraft-current-page.xml >/dev/null
+  adb pull /sdcard/pitchcraft-current-page.xml pitchcraft-current-page.xml >/dev/null
+  local coord
+  coord="$(python3 - "$wanted" <<'PY'
+import re,sys,xml.etree.ElementTree as ET
+try:
+    root=ET.parse('pitchcraft-current-page.xml').getroot()
+    for item in root.iter('node'):
+        if item.get('content-desc') == sys.argv[1]:
+            b=[int(n) for n in re.findall(r'\d+',item.get('bounds',''))]
+            if len(b)==4:
+                print((b[0]+b[2])//2,(b[1]+b[3])//2)
+                break
+except (OSError,ET.ParseError):
+    pass
+PY
+)"
+  if [ -z "$coord" ]; then
+    echo "::error::Accessible control '$wanted' is missing from current UI."
+    exit 1
+  fi
+  read -r CX CY <<< "$coord"
+  adb shell input tap "$CX" "$CY"
+  sleep 4
+  test -n "$(adb shell pidof "$PACKAGE" | tr -d '\r')"
+}
+tap_accessibility "Home"
+tap_accessibility "People"
 adb exec-out screencap -p > pitchcraft-people-reference.png
+adb shell uiautomator dump /sdcard/pitchcraft-people-page.xml >/dev/null
+adb pull /sdcard/pitchcraft-people-page.xml pitchcraft-people-page.xml >/dev/null
+if ! grep -q 'text="Your people"' pitchcraft-people-page.xml; then
+  echo "::error::People navigation did not show the People directory"
+  exit 1
+fi
 adb shell input keyevent KEYCODE_BACK
 sleep 3
+tap_accessibility "Search"
+adb exec-out screencap -p > pitchcraft-search-reference.png
+adb shell uiautomator dump /sdcard/pitchcraft-search-page.xml >/dev/null
+adb pull /sdcard/pitchcraft-search-page.xml pitchcraft-search-page.xml >/dev/null
+if ! grep -q 'text="Search photos &amp; videos"\|text="Recent searches"\|text="Search photos, dates, places, text' pitchcraft-search-page.xml; then
+  echo "::error::Search destination not visible"
+  exit 1
+fi
+tap_accessibility "Favorites"
+adb exec-out screencap -p > pitchcraft-favorites-reference.png
 test -n "$(adb shell pidof "$PACKAGE" | tr -d '\r')"
-echo "Photos / Albums / Search / People navigation survived."
-
-
+echo "Real Photos / Albums / People / Search / Favorites routes opened and remained alive."
