@@ -139,6 +139,12 @@ fun SettingsScreen(
     val smartSearchModelDownloaded by viewModel.smartSearchModelDownloaded.collectAsState()
     val unindexedSmartSearchCount by viewModel.unindexedSmartSearchCount.collectAsState()
     val smartSearchAutoIndex by viewModel.smartSearchAutoIndex.collectAsState()
+    val faceProgressState by viewModel.faceProgress.collectAsState()
+    val unindexedFaceCount by viewModel.unindexedFaceCount.collectAsState()
+    val faceCount by viewModel.faceCount.collectAsState()
+    val peopleCount by viewModel.peopleCount.collectAsState()
+    val faceIndexingEnabled by viewModel.faceIndexingEnabled.collectAsState()
+    val processingPerformance by viewModel.processingPerformance.collectAsState()
 
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
@@ -1122,6 +1128,247 @@ fun SettingsScreen(
                                     }
                                 }
                             }
+
+
+                            SettingsGroupCard(
+                                title = "People & Face Recognition",
+                                items = listOf(
+                                    {
+                                        SwitchSettingItem(
+                                            title = "People Indexing",
+                                            subtitle = "Detect, recognize and group faces locally on this phone",
+                                            icon = ImageVector.vectorResource(R.drawable.ic_ms_person),
+                                            checked = faceIndexingEnabled,
+                                            onCheckedChange = { viewModel.setFaceIndexingEnabled(it) }
+                                        )
+                                    },
+                                    {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    "Processing performance",
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                Text(
+                                                    "${Runtime.getRuntime().availableProcessors()} CPU cores",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+
+                                            SingleChoiceSegmentedButtonRow(
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                com.inferno.gallery.data.ProcessingPerformance.entries.forEachIndexed { index, mode ->
+                                                    SegmentedButton(
+                                                        shape = SegmentedButtonDefaults.itemShape(index, 3),
+                                                        selected = processingPerformance == mode,
+                                                        onClick = { viewModel.setProcessingPerformance(mode) },
+                                                        label = {
+                                                            Text(
+                                                                when (mode) {
+                                                                    com.inferno.gallery.data.ProcessingPerformance.BALANCED -> "Balanced"
+                                                                    com.inferno.gallery.data.ProcessingPerformance.FAST -> "Fast"
+                                                                    com.inferno.gallery.data.ProcessingPerformance.MAX -> "Max"
+                                                                }
+                                                            )
+                                                        }
+                                                    )
+                                                }
+                                            }
+
+                                            Text(
+                                                text = when (processingPerformance) {
+                                                    com.inferno.gallery.data.ProcessingPerformance.BALANCED ->
+                                                        "Lower CPU pressure for everyday background indexing."
+                                                    com.inferno.gallery.data.ProcessingPerformance.FAST ->
+                                                        "Uses more CPU threads for quicker local ML."
+                                                    com.inferno.gallery.data.ProcessingPerformance.MAX ->
+                                                        "Uses the strongest local processing profile with no artificial speed limit."
+                                                },
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    },
+                                    {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    "Face scan",
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                Surface(
+                                                    shape = CircleShape,
+                                                    color = if (faceProgressState.isIndexing)
+                                                        MaterialTheme.colorScheme.primaryContainer
+                                                    else MaterialTheme.colorScheme.surfaceVariant
+                                                ) {
+                                                    Text(
+                                                        if (faceProgressState.isIndexing) "Running" else faceProgressState.stage.ifBlank { "Ready" },
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
+                                                    )
+                                                }
+                                            }
+
+                                            if (faceProgressState.total > 0) {
+                                                val facePct = (
+                                                    faceProgressState.progress.toFloat() /
+                                                        faceProgressState.total.toFloat()
+                                                    ).coerceIn(0f, 1f)
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(10.dp)
+                                                        .background(
+                                                            MaterialTheme.colorScheme.surfaceVariant,
+                                                            CircleShape
+                                                        )
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth(facePct)
+                                                            .fillMaxHeight()
+                                                            .background(
+                                                                MaterialTheme.colorScheme.primary,
+                                                                CircleShape
+                                                            )
+                                                    )
+                                                }
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Text(
+                                                        "${faceProgressState.progress} / ${faceProgressState.total} images",
+                                                        style = MaterialTheme.typography.labelMedium
+                                                    )
+                                                    Text(
+                                                        "${(facePct * 100).toInt()}%",
+                                                        style = MaterialTheme.typography.labelMedium,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+                                            }
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                                            ) {
+                                                Text(
+                                                    "${faceProgressState.facesFound.coerceAtLeast(faceCount)} faces",
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                                Text(
+                                                    "$peopleCount people",
+                                                    style = MaterialTheme.typography.labelMedium
+                                                )
+                                                if (faceProgressState.failed > 0) {
+                                                    Text(
+                                                        "${faceProgressState.failed} failed",
+                                                        style = MaterialTheme.typography.labelMedium,
+                                                        color = MaterialTheme.colorScheme.error
+                                                    )
+                                                }
+                                            }
+
+                                            faceProgressState.currentImageName?.let { current ->
+                                                Text(
+                                                    "Now: $current",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+
+                                            if (faceProgressState.recentUris.isNotEmpty()) {
+                                                Text(
+                                                    "Recently processed",
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                                Row(
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
+                                                    faceProgressState.recentUris.takeLast(5).forEach { uri ->
+                                                        AsyncImage(
+                                                            model = android.net.Uri.parse(uri),
+                                                            contentDescription = null,
+                                                            contentScale = ContentScale.Crop,
+                                                            modifier = Modifier
+                                                                .size(48.dp)
+                                                                .clip(RoundedCornerShape(10.dp))
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                if (faceProgressState.isIndexing) {
+                                                    ExpressiveButton(
+                                                        onClick = { viewModel.stopFaceIndexing() },
+                                                        modifier = Modifier.weight(1f),
+                                                        colors = ButtonDefaults.buttonColors(
+                                                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                                                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                                        )
+                                                    ) {
+                                                        Text("Pause")
+                                                    }
+                                                } else {
+                                                    FilledTonalButton(
+                                                        onClick = { viewModel.startFaceIndexing() },
+                                                        modifier = Modifier.weight(1f),
+                                                        enabled = faceIndexingEnabled
+                                                    ) {
+                                                        Text(if (faceCount == 0) "Start scan" else "Scan new")
+                                                    }
+                                                    OutlinedButton(
+                                                        onClick = { viewModel.rebuildFaceIndex() },
+                                                        modifier = Modifier.weight(1f),
+                                                        enabled = faceIndexingEnabled
+                                                    ) {
+                                                        Text("Rebuild")
+                                                    }
+                                                }
+                                            }
+
+                                            if (!faceProgressState.isIndexing && unindexedFaceCount > 0) {
+                                                Text(
+                                                    "$unindexedFaceCount images still need face indexing before folder-scope filtering.",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                    }
+                                )
+                            )
 
                             SettingsGroupCard(
                                 title = "Local Semantic Search (AI)",
