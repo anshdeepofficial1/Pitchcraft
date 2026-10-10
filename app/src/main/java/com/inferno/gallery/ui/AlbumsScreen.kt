@@ -113,6 +113,7 @@ fun AlbumsScreen(
     onAlbumClick: (String) -> Unit = {},
     onPersonClick: (String) -> Unit = {},
     onPeopleProgressClick: () -> Unit = {},
+    onNavigateToAllPeople: () -> Unit = {},
     onNavigateToVault: () -> Unit = {},
     onNavigateToDuplicateCleaner: () -> Unit = {},
     onNavigateToPhotoMap: () -> Unit = {},
@@ -442,7 +443,8 @@ fun AlbumsScreen(
                 title = "People",
                 count = if (people.isNotEmpty()) people.size else null,
                 isExpanded = peopleExpanded,
-                onToggle = { viewModel.toggleAlbumsExpandedPeople() }
+                onToggle = { viewModel.toggleAlbumsExpandedPeople() },
+                onSeeAll = if (people.isNotEmpty()) onNavigateToAllPeople else null
             )
         }
 
