@@ -132,6 +132,8 @@ fun AlbumsScreen(
     val placesClusters by viewModel.placesClusters.collectAsState()
     val mediaTypeBuckets by viewModel.mediaTypeBuckets.collectAsState()
     val customCovers by viewModel.albumCustomCovers.collectAsState()
+    val people by viewModel.people.collectAsState()
+    val faceProgress by viewModel.faceProgress.collectAsState()
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
 
@@ -154,6 +156,7 @@ fun AlbumsScreen(
     // Persistent expand states for sections
     val pinnedExpanded by viewModel.albumsExpandedPinned.collectAsState()
     val moreExpanded by viewModel.albumsExpandedMore.collectAsState()
+    val peopleExpanded by viewModel.albumsExpandedPeople.collectAsState()
     val placesExpanded by viewModel.albumsExpandedPlaces.collectAsState()
     val mediaTypesExpanded by viewModel.albumsExpandedMediaTypes.collectAsState()
 
@@ -431,7 +434,153 @@ fun AlbumsScreen(
         }
 
 
-        // ── 3. Places Carousel ──
+
+        // ── 3. People ──
+        item(key = "header_people", span = { GridItemSpan(maxLineSpan) }) {
+            SectionHeader(
+                title = "People",
+                count = if (people.isNotEmpty()) people.size else null,
+                isExpanded = peopleExpanded,
+                onToggle = { viewModel.toggleAlbumsExpandedPeople() }
+            )
+        }
+
+        item(key = "content_people", span = { GridItemSpan(maxLineSpan) }) {
+            AnimatedVisibility(
+                visible = peopleExpanded,
+                enter = expandVertically(animationSpec = MotionTokens.snappySpring()) + fadeIn(animationSpec = MotionTokens.snappySpring()),
+                exit = shrinkVertically(animationSpec = MotionTokens.snappySpring()) + fadeOut(animationSpec = MotionTokens.snappySpring())
+            ) {
+                if (people.isEmpty() && !faceProgress.isIndexing) {
+                    Surface(
+                        shape = ShapeLargeIncreased,
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.startFaceIndexing() }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(18.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary
+                            ) {
+                                Icon(
+                                    imageVector = ImageVector.vectorResource(R.drawable.ic_ms_person),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.padding(12.dp).size(24.dp)
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "Find people on this device",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "Local face detection and grouping. Originals never leave your phone.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Text(
+                                "Start",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                } else {
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(horizontal = SpacingTokens.XS),
+                        horizontalArrangement = Arrangement.spacedBy(SpacingTokens.M)
+                    ) {
+                        if (faceProgress.isIndexing) {
+                            item(key = "people_scan_progress") {
+                                Surface(
+                                    shape = ShapeLargeIncreased,
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    modifier = Modifier.width(190.dp)
+                                ) {
+                                    Column(Modifier.padding(16.dp)) {
+                                        Text(
+                                            faceProgress.stage.ifBlank { "Scanning people" },
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Spacer(Modifier.height(7.dp))
+                                        Text(
+                                            "${faceProgress.progress} / ${faceProgress.total} images",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                        Text(
+                                            "${faceProgress.facesFound} faces found",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        faceProgress.currentImageName?.let {
+                                            Spacer(Modifier.height(6.dp))
+                                            Text(
+                                                it,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        items(people, key = { "person_${it.clusterId}" }) { person ->
+                            Column(
+                                modifier = Modifier
+                                    .width(112.dp)
+                                    .clickable { onPersonClick(person.clusterId.toString()) },
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Surface(
+                                    shape = ShapeLargeIncreased,
+                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .aspectRatio(0.92f)
+                                ) {
+                                    AsyncImage(
+                                        model = person.coverCropPath?.let { java.io.File(it) },
+                                        contentDescription = person.name ?: "Person",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                                Spacer(Modifier.height(7.dp))
+                                Text(
+                                    person.name ?: "Person",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    "${person.faceCount} faces",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+        // ── 4. Places Carousel ──
         item(key = "header_places", span = { GridItemSpan(maxLineSpan) }) {
             SectionHeader(
                 title = "Places",
