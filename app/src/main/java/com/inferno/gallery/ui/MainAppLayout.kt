@@ -428,7 +428,14 @@ fun MainAppLayout(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         topBar = {
-            if (currentRoute != "photo_map" && currentRoute != "duplicate_cleaner" && currentRoute != "all_albums" && currentRoute != "story_viewer" && currentRoute != "places_list") {
+            if (currentRoute != "photo_map" &&
+                currentRoute != "duplicate_cleaner" &&
+                currentRoute != "all_albums" &&
+                currentRoute != "story_viewer" &&
+                currentRoute != "places_list" &&
+                currentRoute != "people_processing" &&
+                currentRoute != "person/{clusterId}" &&
+                currentRoute != "person_story/{clusterId}") {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
