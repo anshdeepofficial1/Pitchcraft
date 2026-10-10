@@ -352,38 +352,18 @@ fun GalleryScreen(
                     alpha = gridAlpha
                 }
         ) {
-            if (isMainTab) {
-                ReferenceGallerySurface(
-                    pagedMedia = pagedMedia,
-                    onMediaClick = onMediaClick,
-                    onMediaLongClick = onMediaLongClick,
-                    isSelectionMode = isSelectionMode,
-                    selectedUris = selectedUris,
-                    favoriteIds = favoriteIds,
-                    onToggleFavorite = viewModel::toggleFavorite,
-                    contentPadding = contentPadding,
-                    modifier = modifier
-                )
-            } else {
-            com.inferno.gallery.ui.components.PhotonGrid(
+            ReferenceGallerySurface(
                 pagedMedia = pagedMedia,
                 lazyGridState = lazyGridState,
-                gridCellsCount = gridCellsCount,
-                onGridCountChange = viewModel::setGridCellsCount,
-                isSelectionMode = isSelectionMode,
-                selectedUris = selectedUris,
                 onMediaClick = onMediaClick,
                 onMediaLongClick = onMediaLongClick,
-                viewMode = viewMode,
-                thumbnailCornerRadius = thumbnailCornerRadius,
-                sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope,
-                viewModel = viewModel,
-                modifier = modifier,
+                isSelectionMode = isSelectionMode,
+                selectedUris = selectedUris,
+                favoriteIds = favoriteIds,
+                onToggleFavorite = viewModel::toggleFavorite,
                 contentPadding = contentPadding,
-                timelineLayoutMode = timelineLayoutMode
+                modifier = modifier
             )
-            }
         }
 
         // ── Initial sync loading ────────────────────────────────────────────
@@ -439,23 +419,13 @@ fun GalleryScreen(
                 null -> "No photos yet" to "Photos and videos on your device will appear here."
                 else -> "Album is empty" to "\"$bucketName\" has no photos or videos."
             }
-            if (isMainTab) {
-                ReferenceEmptyGallery(
-                    modifier = Modifier.fillMaxSize(),
-                    subtitle = subtitle
-                )
-            } else {
-                PhotonEmptyState(
-                    icon = emptyIcon,
-                    title = title,
-                    subtitle = subtitle,
-                    modifier = Modifier.fillMaxSize(),
-                    action = null
-                )
-            }
+            ReferenceEmptyGallery(
+                modifier = Modifier.fillMaxSize(),
+                subtitle = subtitle
+            )
         }
 
-        if (!isMainTab) FastScroller(
+        FastScroller(
             lazyGridState = lazyGridState,
             totalItems = totalItems,
             modifier = Modifier
