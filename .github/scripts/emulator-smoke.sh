@@ -16,11 +16,12 @@ echo "Launching Pitchcraft..."
 adb shell am start -W -n "$PACKAGE/$ACTIVITY"
 sleep 12
 
-PID="$(adb shell pidof "$PACKAGE" | tr -d '\r')"
+PID="$(adb shell pidof "$PACKAGE" 2>/dev/null | tr -d '\r' || true)"
 if [ -z "$PID" ]; then
   echo "Pitchcraft process is not alive after launch."
-  adb logcat -d -t 1500 > pitchcraft-logcat.txt || true
-  cat pitchcraft-logcat.txt || true
+  adb logcat -d -t 3000 > pitchcraft-logcat.txt || true
+  echo "===== Pitchcraft crash log ====="
+  grep -n -E -B 20 -A 80 "FATAL EXCEPTION|AndroidRuntime|Process: $PACKAGE|Caused by:|Exception" pitchcraft-logcat.txt || cat pitchcraft-logcat.txt
   exit 1
 fi
 
