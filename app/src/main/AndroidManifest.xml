@@ -22,6 +22,8 @@
     <!-- Network: map tile downloads (osmdroid), AI model downloads, update checks -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Required only when the user explicitly chooses to install an in-app GitHub update -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <queries>
         <intent>
