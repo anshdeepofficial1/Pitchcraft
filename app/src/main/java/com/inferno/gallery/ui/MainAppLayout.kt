@@ -147,10 +147,10 @@ import com.inferno.gallery.R
 import coil3.compose.AsyncImage
 
 private fun pitchcraftGreeting(): String = when (java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)) {
-    in 5..11 -> "Good morning"
-    in 12..16 -> "Good afternoon"
-    in 17..21 -> "Good evening"
-    else -> "Your memories, beautifully organized"
+    in 5..11 -> "Good Morning"
+    in 12..16 -> "Good Afternoon"
+    in 17..21 -> "Good Evening"
+    else -> "Good Night"
 }
 
 
