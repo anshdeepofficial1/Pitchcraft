@@ -443,127 +443,69 @@ fun PersonDetailScreen(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                Surface(
-                    shape = RoundedCornerShape(34.dp),
-                    shadowElevation = 8.dp,
-                    tonalElevation = 2.dp,
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 12.dp)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp, bottom = 10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primaryContainer,
-                                        MaterialTheme.colorScheme.surfaceContainerLow
-                                    )
-                                )
-                            )
+                    Surface(
+                        shape = RoundedCornerShape(38.dp),
+                        shadowElevation = 10.dp,
+                        tonalElevation = 3.dp,
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        modifier = Modifier.size(232.dp)
                     ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(22.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(36.dp),
-                                shadowElevation = 7.dp,
-                                modifier = Modifier.size(154.dp)
-                            ) {
-                                AsyncImage(
-                                    model = person?.coverCropPath?.let { File(it) },
-                                    contentDescription = person?.name,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            }
-                            Spacer(Modifier.height(16.dp))
-                            Text(
-                                person?.name ?: "Unnamed person",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                buildString {
-                                    append("${media.size} photos")
-                                    if (!person?.relation.isNullOrBlank()) {
-                                        append(" • ")
-                                        append(person?.relation)
-                                    }
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        AsyncImage(
+                            model = person?.coverCropPath?.let { File(it) },
+                            contentDescription = person?.name,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
 
-                            Spacer(Modifier.height(18.dp))
-                            ProfileRow(
-                                title = "Name",
-                                value = person?.name ?: "Add name",
-                                onClick = { showNameDialog = true }
-                            )
-                            ProfileRow(
-                                title = "Relationship",
-                                value = person?.relation ?: "Add relationship",
-                                onClick = { showRelationDialog = true }
-                            )
+                    Spacer(Modifier.height(18.dp))
 
-                            val birthday = person?.birthdayEpochDay?.let {
-                                runCatching {
-                                    LocalDate.ofEpochDay(it).format(
-                                        DateTimeFormatter.ofPattern("d MMMM yyyy")
-                                    )
-                                }.getOrNull()
-                            }
-                            ProfileRow(
-                                title = "Birthday",
-                                value = birthday ?: "Add birthday",
-                                onClick = {
-                                    val initial = person?.birthdayEpochDay?.let(LocalDate::ofEpochDay)
-                                        ?: LocalDate.now().minusYears(20)
-                                    DatePickerDialog(
-                                        context,
-                                        { _, year, month, day ->
-                                            val selected = LocalDate.of(year, month + 1, day)
-                                            viewModel.updatePersonBirthday(
-                                                clusterId,
-                                                selected.toEpochDay(),
-                                                true
-                                            )
-                                            if (Build.VERSION.SDK_INT >= 33) {
-                                                notificationPermissionLauncher.launch(
-                                                    Manifest.permission.POST_NOTIFICATIONS
-                                                )
-                                            }
-                                        },
-                                        initial.year,
-                                        initial.monthValue - 1,
-                                        initial.dayOfMonth
-                                    ).show()
-                                }
-                            )
+                    Text(
+                        person?.name ?: "Unnamed person",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
 
-                            Spacer(Modifier.height(16.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Button(
-                                    onClick = onStory,
-                                    enabled = media.isNotEmpty(),
-                                    modifier = Modifier.weight(1f)
-                                ) { Text("Story") }
-                                FilledTonalButton(
-                                    onClick = {
-                                        onCreateCollage(
-                                            media.take(6).map { it.uri.toString() }
-                                        )
-                                    },
-                                    enabled = media.size >= 2,
-                                    modifier = Modifier.weight(1f)
-                                ) { Text("Collage") }
+                    Spacer(Modifier.height(5.dp))
+
+                    Text(
+                        buildString {
+                            if (!person?.relation.isNullOrBlank()) {
+                                append(person?.relation)
+                                append(" • ")
                             }
-                        }
+                            append("${media.size} photos")
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Button(
+                            onClick = onStory,
+                            enabled = media.isNotEmpty(),
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Story") }
+
+                        FilledTonalButton(
+                            onClick = {
+                                onCreateCollage(media.take(6).map { it.uri.toString() })
+                            },
+                            enabled = media.size >= 2,
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Collage") }
                     }
                 }
             }
@@ -598,6 +540,73 @@ fun PersonDetailScreen(
                         .clip(RoundedCornerShape(10.dp))
                         .clickable { onPhotoClick(item.id, null, null) }
                 )
+            }
+
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                val birthday = person?.birthdayEpochDay?.let {
+                    runCatching {
+                        LocalDate.ofEpochDay(it).format(
+                            DateTimeFormatter.ofPattern("d MMMM yyyy")
+                        )
+                    }.getOrNull()
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(26.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    tonalElevation = 2.dp,
+                    shadowElevation = 3.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 18.dp, bottom = 6.dp)
+                ) {
+                    Column(Modifier.padding(14.dp)) {
+                        Text(
+                            "About this person",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
+                        )
+
+                        ProfileRow(
+                            title = "Name",
+                            value = person?.name ?: "Add name",
+                            onClick = { showNameDialog = true }
+                        )
+                        ProfileRow(
+                            title = "Relationship",
+                            value = person?.relation ?: "Add relationship",
+                            onClick = { showRelationDialog = true }
+                        )
+                        ProfileRow(
+                            title = "Birthday",
+                            value = birthday ?: "Add birthday",
+                            onClick = {
+                                val initial = person?.birthdayEpochDay?.let(LocalDate::ofEpochDay)
+                                    ?: LocalDate.now().minusYears(20)
+                                DatePickerDialog(
+                                    context,
+                                    { _, year, month, day ->
+                                        val selected = LocalDate.of(year, month + 1, day)
+                                        viewModel.updatePersonBirthday(
+                                            clusterId,
+                                            selected.toEpochDay(),
+                                            true
+                                        )
+                                        if (Build.VERSION.SDK_INT >= 33) {
+                                            notificationPermissionLauncher.launch(
+                                                Manifest.permission.POST_NOTIFICATIONS
+                                            )
+                                        }
+                                    },
+                                    initial.year,
+                                    initial.monthValue - 1,
+                                    initial.dayOfMonth
+                                ).show()
+                            }
+                        )
+                    }
+                }
             }
         }
     }
