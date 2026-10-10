@@ -492,6 +492,32 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun updatePersonRelation(clusterId: Long, relation: String?) {
+        viewModelScope.launch(Dispatchers.IO) {
+            database.faceDao().updateRelation(clusterId, relation?.trim()?.takeIf { it.isNotBlank() })
+        }
+    }
+
+    fun updatePersonBirthday(clusterId: Long, birthdayEpochDay: Long?, reminderEnabled: Boolean = true) {
+        viewModelScope.launch(Dispatchers.IO) {
+            database.faceDao().updateBirthday(clusterId, birthdayEpochDay, reminderEnabled)
+            com.inferno.gallery.workers.BirthdayReminderWorker.schedule(getApplication())
+        }
+    }
+
+    fun changePersonCover(clusterId: Long, faceId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val face = database.faceDao().getFacesForCluster(clusterId)
+                .firstOrNull { it.id == faceId } ?: return@launch
+            database.faceDao().updateCover(
+                clusterId = clusterId,
+                faceId = face.id,
+                mediaId = face.mediaId,
+                cropPath = face.cropCachePath
+            )
+        }
+    }
+
     fun setPersonHidden(clusterId: Long, hidden: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             database.faceDao().setClusterHidden(clusterId, hidden)
