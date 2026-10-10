@@ -130,7 +130,7 @@ fun PermissionOnboardingScreen(
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.launcher_icon_fg),
-                            contentDescription = "Photon Gallery",
+                            contentDescription = "Pitchcraft",
                             modifier = Modifier
                                 .size(72.dp)
                                 .clip(ShapeLarge)
