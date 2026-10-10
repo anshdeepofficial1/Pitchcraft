@@ -1,63 +1,191 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.plugin.compose")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
 }
 
 android {
-    namespace = "com.anshdeep.pitchcraft"
-    compileSdk = 36
+    namespace = "com.inferno.gallery"
+    compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.anshdeep.pitchcraft"
-        minSdk = 26
-        targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        applicationId = "com.inferno.gallery"
+        minSdk = 31
+        targetSdk = 37
+        versionCode = 4
+        versionName = "1.0.3 (beta)"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+        }
+    }
+
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = true
+        }
+    }
+
+    signingConfigs {
+        create("release") {
+            val propsFile = rootProject.file("key.properties")
+            if (propsFile.exists()) {
+                val ks = Properties()
+                ks.load(FileInputStream(propsFile))
+                val keystorePath = ks["storeFile"] as String
+                val rootKsFile = rootProject.file(keystorePath)
+                storeFile = if (rootKsFile.exists()) rootKsFile else file(keystorePath)
+                storePassword = ks["storePassword"] as String
+                keyAlias = ks["keyAlias"] as String
+                keyPassword = ks["keyPassword"] as String
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            // Install alongside the release app so device testing never touches real app data
+            applicationIdSuffix = ".debug"
+        }
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
     buildFeatures {
         compose = true
     }
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
+}
 
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+            val abi = output.filters.find { it.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI }?.identifier ?: "universal"
+            output.outputFileName.set("PhotonGallery-$abi.apk")
         }
     }
 }
 
-kotlin {
-    jvmToolchain(17)
+room {
+    schemaDirectory("$projectDir/schemas")
+}
+
+ksp {
+    // Force Kotlin codegen — avoids 'unexpected jvm signature V' KSP bug with suspend Unit DAOs
+    arg("room.generateKotlin", "true")
 }
 
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2025.06.01"))
-    implementation("androidx.core:core-ktx:1.16.0")
-    implementation("androidx.activity:activity-compose:1.10.1")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.1")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.1")
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-extended")
-    implementation("androidx.work:work-runtime-ktx:2.10.2")
-    implementation("com.google.mlkit:face-detection:16.1.7")
-    implementation("com.google.mlkit:text-recognition:16.0.1")
-    implementation("com.google.mlkit:image-labeling:17.0.9")
-    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.22.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
-    implementation("io.coil-kt:coil-compose:2.7.0")
-    implementation("io.coil-kt:coil-video:2.7.0")
-    implementation("androidx.exifinterface:exifinterface:1.4.1")
-    implementation("androidx.media3:media3-exoplayer:1.7.1")
-    implementation("androidx.media3:media3-ui:1.7.1")
+    // ── Compose BOM (aligns UI / Foundation / Runtime versions) ──
+    implementation(platform(libs.androidx.compose.bom))
 
-    debugImplementation("androidx.compose.ui:ui-tooling")
+    // ── AndroidX Core ──
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.activity.compose)
+    implementation("androidx.core:core-splashscreen:1.0.1")
+
+    // ── Lifecycle ──
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+
+    // ── DataStore ──
+    implementation(libs.androidx.datastore.preferences)
+
+    // ── Compose UI ──
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+
+    // ── Material 3 Expressive (explicit version ≥ 1.4.0, overrides BOM) ──
+    implementation(libs.androidx.compose.material3)
+
+    // ── Compose Animation (SharedTransitionScope, spring physics) ──
+    implementation(libs.androidx.compose.animation)
+
+    // ── Navigation ──
+    implementation(libs.androidx.navigation.compose)
+
+    // ── Graphics Shapes (RoundedPolygon, Morph — for shape morphing) ──
+    implementation(libs.androidx.graphics.shapes)
+
+    // ── Coil 3 — Image Loading ──
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+    implementation(libs.coil.video)
+    implementation(libs.coil.gif)
+    implementation(libs.coil.svg)
+
+    // ── EXIF ──
+    implementation(libs.androidx.exifinterface)
+
+    // ── Room — Database (stable 2.6.1, FTS5 support) ──
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    implementation(libs.room.paging)
+    ksp(libs.room.compiler)
+
+    // ── Paging 3 ──
+    implementation(libs.paging.runtime)
+    implementation(libs.paging.compose)
+
+    // ── ML Kit (OCR & Face Detection) ──
+    implementation(libs.mlkit.text.recognition)
+    implementation(libs.mlkit.face.detection)
+
+    // ── ONNX Runtime ──
+    implementation(libs.onnxruntime.android)
+
+
+    // ── WorkManager ──
+    implementation(libs.androidx.work.runtime.ktx)
+
+    // ── Testing ──
+    testImplementation(libs.junit)
+    testImplementation("org.json:json:20240303")
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.junit)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+
+    // ── Media3 (ExoPlayer) ──
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui)
+
+    // ── Biometric (Private Space auth) ──
+    implementation(libs.androidx.biometric)
+
+    // ── osmdroid (OpenStreetMap — Photo Map) ──
+    implementation(libs.osmdroid)
+
+
+    // ── Lottie Animations ──
+    implementation(libs.lottie.compose)
+
+    implementation(libs.material)
+
+    // ── MaterialKolor — Kotlin-native M3 dynamic color engine ──
+    implementation("com.materialkolor:material-kolor:4.1.1")
 }
