@@ -1,61 +1,118 @@
 package com.inferno.gallery.data.network
 
 import android.util.Log
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 data class UpdateInfo(
     val isAvailable: Boolean,
     val version: String,
-    val url: String
+    val normalizedVersion: String,
+    val releasePageUrl: String,
+    val apkUrl: String?,
+    val apkName: String?,
+    val apkSizeBytes: Long,
+    val changelog: String,
+    val publishedAt: String?
 )
 
 object UpdateChecker {
-    private const val GITHUB_LATEST_RELEASE_URL = "https://api.github.com/repos/anshdeepofficial1/Pitchcraft/releases/latest"
-    private val client = OkHttpClient()
+    private const val TAG = "UpdateChecker"
+    private const val GITHUB_LATEST_RELEASE_URL =
+        "https://api.github.com/repos/anshdeepofficial1/Pitchcraft/releases/latest"
 
-    suspend fun checkForUpdates(currentVersion: String): UpdateInfo? = withContext(Dispatchers.IO) {
-        try {
-            val request = Request.Builder()
-                .url(GITHUB_LATEST_RELEASE_URL)
-                .header("Accept", "application/vnd.github.v3+json")
-                .build()
+    private val client = OkHttpClient.Builder()
+        .followRedirects(true)
+        .followSslRedirects(true)
+        .build()
 
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return@withContext null
+    suspend fun checkForUpdates(currentVersion: String): UpdateInfo? =
+        withContext(Dispatchers.IO) {
+            try {
+                val request = Request.Builder()
+                    .url(GITHUB_LATEST_RELEASE_URL)
+                    .header("Accept", "application/vnd.github+json")
+                    .header("X-GitHub-Api-Version", "2022-11-28")
+                    .header("User-Agent", "Pitchcraft-Android")
+                    .build()
 
-                val responseBody = response.body?.string() ?: return@withContext null
-                val json = JSONObject(responseBody)
-                
-                val tagName = json.getString("tag_name")
-                val htmlUrl = json.getString("html_url")
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        Log.w(TAG, "GitHub update check failed: HTTP ${response.code}")
+                        return@withContext null
+                    }
 
-                // Strip 'v' prefix if present
-                val latestVersion = tagName.removePrefix("v")
-                val current = currentVersion.removePrefix("v")
+                    val responseBody = response.body?.string() ?: return@withContext null
+                    val json = JSONObject(responseBody)
 
-                // Simple string comparison for versions like "2.5.0" vs "2.6.0"
-                // Assuming semantic versioning format
-                val isAvailable = isNewerVersion(current, latestVersion)
+                    val tagName = json.optString("tag_name").ifBlank { return@withContext null }
+                    val latestVersion = normalizeVersion(tagName)
+                    val current = normalizeVersion(currentVersion)
+                    val releasePage = json.optString("html_url")
+                    val changelog = json.optString("body").trim()
+                    val publishedAt = json.optString("published_at").takeIf { it.isNotBlank() }
 
-                return@withContext UpdateInfo(
-                    isAvailable = isAvailable,
-                    version = tagName,
-                    url = htmlUrl
-                )
+                    val assets = json.optJSONArray("assets")
+                    var bestName: String? = null
+                    var bestUrl: String? = null
+                    var bestSize = 0L
+                    var bestScore = Int.MIN_VALUE
+
+                    if (assets != null) {
+                        for (i in 0 until assets.length()) {
+                            val asset = assets.optJSONObject(i) ?: continue
+                            val name = asset.optString("name")
+                            val url = asset.optString("browser_download_url")
+                            if (!name.endsWith(".apk", ignoreCase = true) || url.isBlank()) continue
+
+                            val lower = name.lowercase()
+                            var score = 0
+                            if ("pitchcraft" in lower) score += 20
+                            if ("universal" in lower) score += 30
+                            if ("release" in lower) score += 10
+                            if ("debug" in lower) score -= 5
+                            if ("arm64" in lower || "x86" in lower || "armeabi" in lower) score -= 20
+
+                            if (score > bestScore) {
+                                bestScore = score
+                                bestName = name
+                                bestUrl = url
+                                bestSize = asset.optLong("size", 0L)
+                            }
+                        }
+                    }
+
+                    UpdateInfo(
+                        isAvailable = isNewerVersion(current, latestVersion),
+                        version = tagName,
+                        normalizedVersion = latestVersion,
+                        releasePageUrl = releasePage,
+                        apkUrl = bestUrl,
+                        apkName = bestName,
+                        apkSizeBytes = bestSize,
+                        changelog = changelog,
+                        publishedAt = publishedAt
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to check for updates", e)
+                null
             }
-        } catch (e: Exception) {
-            Log.e("UpdateChecker", "Failed to check for updates: ${e.message}")
-            null
         }
+
+    private fun normalizeVersion(version: String): String {
+        return version.trim()
+            .removePrefix("v")
+            .substringBefore("-")
+            .substringBefore("+")
     }
 
     private fun isNewerVersion(current: String, latest: String): Boolean {
-        val currentParts = current.split(".").mapNotNull { it.toIntOrNull() }
-        val latestParts = latest.split(".").mapNotNull { it.toIntOrNull() }
+        val currentParts = current.split(".").map { it.toIntOrNull() ?: 0 }
+        val latestParts = latest.split(".").map { it.toIntOrNull() ?: 0 }
 
         val length = maxOf(currentParts.size, latestParts.size)
         for (i in 0 until length) {
