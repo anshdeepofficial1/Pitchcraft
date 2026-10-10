@@ -202,6 +202,11 @@ class SmartSearchIndexWorker(
         )
         val searchEngine = SmartSearchEngine.getInstance(applicationContext)
         try {
+            val settings = com.inferno.gallery.data.SettingsRepository.getInstance(applicationContext)
+            val excludedFolders = settings.excludedFoldersFlow.first()
+            val performance = settings.processingPerformanceFlow.first()
+            searchEngine.setPerformanceMode(performance)
+
             if (!searchEngine.isModelDownloaded()) {
                 Log.e(TAG, "Models not downloaded. Cannot index.")
                 return Result.failure()
@@ -222,9 +227,13 @@ class SmartSearchIndexWorker(
                 }
             }
 
-            val excludedFolders = com.inferno.gallery.data.SettingsRepository.getInstance(applicationContext).excludedFoldersFlow.first()
+            val eligibleMedia = withContext(Dispatchers.IO) {
+                db.mediaDao().getAllMedia()
+                    .filter { !it.isVideo && it.bucketName != "Trash" && !excludedFolders.contains(it.bucketName) }
+            }
+            val eligibleIds = eligibleMedia.map { it.id }.toHashSet()
             val unindexedIds = withContext(Dispatchers.IO) {
-                db.embeddingDao().getUnindexedMediaIds()
+                db.embeddingDao().getUnindexedMediaIds().filter { it in eligibleIds }
             }
 
             if (unindexedIds.isEmpty()) {
@@ -232,9 +241,7 @@ class SmartSearchIndexWorker(
                 return Result.success()
             }
 
-            val totalCount = withContext(Dispatchers.IO) {
-                db.mediaDao().getTotalImageCount()
-            }
+            val totalCount = eligibleMedia.size
             val alreadyIndexed = totalCount - unindexedIds.size
             var processedCount = 0
 
