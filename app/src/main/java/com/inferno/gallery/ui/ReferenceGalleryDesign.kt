@@ -72,26 +72,47 @@ internal fun ReferenceFilterTabs(
     onSelectFilter: (Int) -> Unit,
     onAlbumsClick: () -> Unit,
     onPeopleClick: () -> Unit,
+    onVideosClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Match the supplied reference: one amber selection, three dark glass pills.
+    // "Camera" is still available through the existing filtering controls.
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val filters = listOf("All", "Camera")
-        filters.forEachIndexed { index, name ->
-            ReferenceChip(name, selectedFilter == index, onClick = { onSelectFilter(index) })
-        }
-        ReferenceChip("Albums", false, onClick = onAlbumsClick)
-        ReferenceChip("People", false, onClick = onPeopleClick)
+        ReferenceChip(
+            title = "All",
+            selected = selectedFilter == 0,
+            onClick = { onSelectFilter(0) },
+            modifier = Modifier.weight(0.8f)
+        )
+        ReferenceChip(
+            title = "Albums",
+            selected = false,
+            onClick = onAlbumsClick,
+            modifier = Modifier.weight(1.15f)
+        )
+        ReferenceChip(
+            title = "People",
+            selected = false,
+            onClick = onPeopleClick,
+            modifier = Modifier.weight(1.05f)
+        )
+        ReferenceChip(
+            title = "Videos",
+            selected = false,
+            onClick = onVideosClick,
+            modifier = Modifier.weight(1.10f)
+        )
     }
 }
 
 @Composable
-private fun ReferenceChip(title: String, selected: Boolean, onClick: () -> Unit) {
+private fun ReferenceChip(title: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .clip(CircleShape)
             .background(
                 if (selected) Brush.horizontalGradient(
@@ -106,7 +127,7 @@ private fun ReferenceChip(title: String, selected: Boolean, onClick: () -> Unit)
                 CircleShape
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .padding(horizontal = 8.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
