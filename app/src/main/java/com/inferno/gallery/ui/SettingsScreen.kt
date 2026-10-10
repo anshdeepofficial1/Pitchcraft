@@ -303,12 +303,12 @@ fun SettingsScreen(
                             section = "Privacy & Security"
                         ),
                         CategoryItem(
-                            title = "Excluded Folders",
-                            subtitle = "Hide folders from the main gallery",
-                            icon = ImageVector.vectorResource(R.drawable.ic_ms_folder_off),
+                            title = "Library & Scanning",
+                            subtitle = "Choose visible folders and exactly what local ML scans",
+                            icon = ImageVector.vectorResource(R.drawable.ic_ms_folder),
                             containerColor = MaterialTheme.colorScheme.surfaceVariant,
                             iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            section = "Excluded Folders"
+                            section = "Library & Scanning"
                         ),
                         CategoryItem(
                             title = "About",
@@ -1235,20 +1235,53 @@ fun SettingsScreen(
                             )
                         }
 
-                        "Excluded Folders" -> {
+                        "Library & Scanning" -> {
                             val allFolders by galleryViewModel.allBucketNames.collectAsState()
                             val excludedFolders by galleryViewModel.excludedFolders.collectAsState()
+                            val scopeMode by galleryViewModel.libraryScopeMode.collectAsState()
+                            val selectedCount = allFolders.count { !excludedFolders.contains(it) }
 
                             SettingsGroupCard(
-                                title = "Folder Visibility",
+                                title = "Gallery scope",
                                 items = listOf(
                                     {
-                                        Text(
-                                            text = "Excluded folders won't appear in the Photos tab or Albums grid. You can still access them by searching.",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.padding(16.dp)
-                                        )
+                                        Column(modifier = Modifier.padding(16.dp)) {
+                                            Text(
+                                                text = "The same folder scope is used everywhere: Photos, Albums, face grouping, OCR, semantic search and future local ML.",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Spacer(modifier = Modifier.height(14.dp))
+                                            SingleChoiceSegmentedButtonRow(
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                SegmentedButton(
+                                                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                                                    selected = scopeMode == com.inferno.gallery.data.LibraryScopeMode.ALL,
+                                                    onClick = { galleryViewModel.includeAllFolders() },
+                                                    label = { Text("All folders") }
+                                                )
+                                                SegmentedButton(
+                                                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                                                    selected = scopeMode == com.inferno.gallery.data.LibraryScopeMode.SELECTED,
+                                                    onClick = {
+                                                        galleryViewModel.setLibraryScopeMode(
+                                                            com.inferno.gallery.data.LibraryScopeMode.SELECTED
+                                                        )
+                                                    },
+                                                    label = { Text("Selected") }
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            Text(
+                                                text = if (scopeMode == com.inferno.gallery.data.LibraryScopeMode.ALL)
+                                                    "All ${allFolders.size} folders are visible and eligible for local processing."
+                                                else
+                                                    "$selectedCount of ${allFolders.size} folders are visible and eligible for local processing.",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
                                     }
                                 )
                             )
@@ -1259,35 +1292,33 @@ fun SettingsScreen(
                                         {
                                             SettingsRow(
                                                 title = "No folders found",
-                                                subtitle = "Media folders will appear here once scanned"
+                                                subtitle = "Media folders will appear here after the local library sync finishes."
                                             )
                                         }
                                     )
                                 )
-                            } else {
+                            } else if (scopeMode == com.inferno.gallery.data.LibraryScopeMode.SELECTED) {
                                 val folderItems = allFolders.map { folderName ->
-                                    val isExcluded = excludedFolders.contains(folderName)
+                                    val included = !excludedFolders.contains(folderName)
                                     val item: @Composable () -> Unit = {
                                         SettingsRow(
                                             title = folderName,
+                                            subtitle = if (included) "Visible • ML scanning enabled" else "Hidden • ML scanning skipped",
                                             icon = ImageVector.vectorResource(R.drawable.ic_ms_folder),
-                                            iconTint = if (isExcluded) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                            else MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.then(
-                                                if (isExcluded) Modifier.alpha(0.6f) else Modifier
-                                            ),
+                                            iconTint = if (included) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                            modifier = Modifier.then(if (included) Modifier else Modifier.alpha(0.62f)),
                                             trailing = {
-                                                Switch(
-                                                    checked = isExcluded,
-                                                    onCheckedChange = { galleryViewModel.toggleExcludedFolder(folderName) },
-                                                    thumbContent = {
-                                                        Icon(
-                                                            imageVector = if (isExcluded) ImageVector.vectorResource(R.drawable.ic_ms_visibility_off) else ImageVector.vectorResource(R.drawable.ic_ms_visibility),
-                                                            contentDescription = null,
-                                                            modifier = Modifier.size(16.dp)
-                                                        )
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    TextButton(
+                                                        onClick = { galleryViewModel.includeOnlyFolder(folderName) }
+                                                    ) {
+                                                        Text("Only")
                                                     }
-                                                )
+                                                    Switch(
+                                                        checked = included,
+                                                        onCheckedChange = { galleryViewModel.setFolderIncluded(folderName, it) }
+                                                    )
+                                                }
                                             }
                                         )
                                     }
@@ -1295,8 +1326,21 @@ fun SettingsScreen(
                                 }
 
                                 SettingsGroupCard(
-                                    title = "${excludedFolders.size} folder${if (excludedFolders.size != 1) "s" else ""} excluded",
+                                    title = "Included folders • $selectedCount/${allFolders.size}",
                                     items = folderItems
+                                )
+                            } else {
+                                SettingsGroupCard(
+                                    title = "All folders",
+                                    items = listOf(
+                                        {
+                                            SettingsRow(
+                                                title = "Everything is included",
+                                                subtitle = "Switch to Selected above when you want the gallery and ML scan to focus on specific folders only.",
+                                                icon = ImageVector.vectorResource(R.drawable.ic_ms_visibility)
+                                            )
+                                        }
+                                    )
                                 )
                             }
                         }
