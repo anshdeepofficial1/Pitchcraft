@@ -684,7 +684,11 @@ fun MainAppLayout(
                                             if (localUserImageUri != null) {
                                                 AsyncImage(model = localUserImageUri, contentDescription = "Local profile", modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
                                             } else {
-                                                Image(painter = painterResource(R.mipmap.ic_launcher), contentDescription = "Pitchcraft profile", modifier = Modifier.padding(5.dp))
+                                                Image(
+                                                    painter = painterResource(R.drawable.pitchcraft_logo_foreground),
+                                                    contentDescription = "Pitchcraft profile",
+                                                    modifier = Modifier.padding(3.dp)
+                                                )
                                             }
                                         }
                                         Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
