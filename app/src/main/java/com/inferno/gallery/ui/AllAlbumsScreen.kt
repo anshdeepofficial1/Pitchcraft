@@ -2,6 +2,7 @@
 
 package com.inferno.gallery.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -33,6 +34,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -68,13 +71,14 @@ fun AllAlbumsScreen(
     val unpinnedAlbums = albums.filter { it.bucketName != "Favorites" && it.bucketName !in userPinnedNames }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        containerColor = ReferencePalette.Black,
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         text = "All Albums",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = ReferencePalette.Cream
                     )
                 },
                 navigationIcon = {
@@ -185,7 +189,9 @@ fun AllAlbumsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    containerColor = ReferencePalette.Espresso,
+                    navigationIconContentColor = ReferencePalette.Cream,
+                    titleContentColor = ReferencePalette.Cream
                 )
             )
         }
@@ -200,12 +206,14 @@ fun AllAlbumsScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(SpacingTokens.L),
             horizontalArrangement = Arrangement.spacedBy(SpacingTokens.M),
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize().background(
+                Brush.verticalGradient(listOf(ReferencePalette.Espresso, ReferencePalette.Black))
+            )
         ) {
             items(
                 items = unpinnedAlbums,
                 key = { "all_folder_${it.bucketName}" },
-                span = { GridItemSpan(4) }
+                span = { GridItemSpan(6) }
             ) { bucket ->
                 Box(modifier = Modifier.fillMaxWidth()) {
                     var showPinMenu by remember { mutableStateOf(false) }
