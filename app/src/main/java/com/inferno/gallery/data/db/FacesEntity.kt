@@ -37,6 +37,9 @@ data class PersonClusterEntity(
     val coverFaceId: Long? = null,
     val coverMediaId: Long? = null,
     val coverCropPath: String? = null,
+    val relation: String? = null,
+    val birthdayEpochDay: Long? = null,
+    val birthdayReminderEnabled: Boolean = true,
     val faceCount: Int = 0,
     val centroid: FloatArray,
     val isFavorite: Boolean = false,
@@ -81,6 +84,18 @@ interface FaceDao {
 
     @Query("UPDATE person_clusters SET name = :name, updatedAt = :updatedAt WHERE clusterId = :clusterId")
     suspend fun renameCluster(clusterId: Long, name: String, updatedAt: Long = System.currentTimeMillis())
+
+    @Query("UPDATE person_clusters SET relation = :relation, updatedAt = :updatedAt WHERE clusterId = :clusterId")
+    suspend fun updateRelation(clusterId: Long, relation: String?, updatedAt: Long = System.currentTimeMillis())
+
+    @Query("UPDATE person_clusters SET birthdayEpochDay = :birthdayEpochDay, birthdayReminderEnabled = :enabled, updatedAt = :updatedAt WHERE clusterId = :clusterId")
+    suspend fun updateBirthday(clusterId: Long, birthdayEpochDay: Long?, enabled: Boolean, updatedAt: Long = System.currentTimeMillis())
+
+    @Query("UPDATE person_clusters SET coverFaceId = :faceId, coverMediaId = :mediaId, coverCropPath = :cropPath, updatedAt = :updatedAt WHERE clusterId = :clusterId")
+    suspend fun updateCover(clusterId: Long, faceId: Long, mediaId: Long, cropPath: String?, updatedAt: Long = System.currentTimeMillis())
+
+    @Query("SELECT * FROM person_clusters WHERE birthdayEpochDay IS NOT NULL AND birthdayReminderEnabled = 1 AND isHidden = 0")
+    suspend fun getBirthdayPeople(): List<PersonClusterEntity>
 
     @Query("UPDATE person_clusters SET isHidden = :hidden, updatedAt = :updatedAt WHERE clusterId = :clusterId")
     suspend fun setClusterHidden(clusterId: Long, hidden: Boolean, updatedAt: Long = System.currentTimeMillis())
