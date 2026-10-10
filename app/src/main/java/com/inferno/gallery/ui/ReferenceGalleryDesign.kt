@@ -128,6 +128,8 @@ internal fun ReferenceGallerySurface(
     onMediaLongClick: (GalleryItem) -> Unit,
     isSelectionMode: Boolean,
     selectedUris: Set<String>,
+    favoriteIds: Set<String>,
+    onToggleFavorite: (String) -> Unit,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier
 ) {
@@ -175,7 +177,9 @@ internal fun ReferenceGallerySurface(
                         onClick = { onMediaClick(first) },
                         onLongClick = { onMediaLongClick(first) },
                         overline = "YOUR MOMENTS",
-                        selected = isSelectionMode && first.uri.toString() in selectedUris
+                        selected = isSelectionMode && first.uri.toString() in selectedUris,
+                        isFavorite = first.id in favoriteIds,
+                        onToggleFavorite = { if (isSelectionMode) onMediaClick(first) else onToggleFavorite(first.id) }
                     )
                     if (second != null) {
                         ReferencePhotoCard(
@@ -189,7 +193,9 @@ internal fun ReferenceGallerySurface(
                             onClick = { onMediaClick(second) },
                             onLongClick = { onMediaLongClick(second) },
                             overline = "MEMORIES IN FOCUS",
-                            selected = isSelectionMode && second.uri.toString() in selectedUris
+                            selected = isSelectionMode && second.uri.toString() in selectedUris,
+                            isFavorite = second.id in favoriteIds,
+                            onToggleFavorite = { if (isSelectionMode) onMediaClick(second) else onToggleFavorite(second.id) }
                         )
                     }
                 }
@@ -246,7 +252,9 @@ internal fun ReferenceGallerySurface(
                             onClick = { onMediaClick(photo) },
                             onLongClick = { onMediaLongClick(photo) },
                             overline = if (photo.isVideo) "VIDEO" else "PHOTO",
-                            selected = isSelectionMode && photo.uri.toString() in selectedUris
+                            selected = isSelectionMode && photo.uri.toString() in selectedUris,
+                            isFavorite = photo.id in favoriteIds,
+                            onToggleFavorite = { if (isSelectionMode) onMediaClick(photo) else onToggleFavorite(photo.id) }
                         )
                     }
                     is GalleryListItem.Header -> {
@@ -280,6 +288,8 @@ private fun ReferencePhotoCard(
     modifier: Modifier,
     overline: String,
     selected: Boolean,
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
@@ -339,19 +349,41 @@ private fun ReferencePhotoCard(
                 .size(34.dp)
                 .clip(CircleShape)
                 .background(Color.Black.copy(alpha = 0.29f))
-                .border(0.6.dp, Color.White.copy(alpha = 0.16f), CircleShape),
+                .border(0.6.dp, Color.White.copy(alpha = 0.16f), CircleShape)
+                .clickable(onClick = onToggleFavorite),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 androidx.compose.ui.graphics.vector.ImageVector.vectorResource(
                     if (selected) R.drawable.ic_ms_check_circle
-                    else if (item.isVideo) R.drawable.ic_ms_play_arrow
-                    else R.drawable.ic_ms_image
+                    else R.drawable.ic_ms_favorite
                 ),
-                contentDescription = if (selected) "Selected" else if (item.isVideo) "Video" else "Photo",
-                tint = Color.White,
-                modifier = Modifier.size(18.dp)
+                contentDescription = when {
+                    selected -> "Selected"
+                    isFavorite -> "Remove from favorites"
+                    else -> "Add to favorites"
+                },
+                tint = if (isFavorite) ReferencePalette.AmberBright else Color.White,
+                modifier = Modifier.size(19.dp)
             )
+        }
+        if (item.isVideo) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(43.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.35f))
+                    .border(1.dp, Color.White.copy(alpha = 0.52f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    androidx.compose.ui.graphics.vector.ImageVector.vectorResource(R.drawable.ic_ms_play_arrow),
+                    contentDescription = "Play video",
+                    tint = Color.White,
+                    modifier = Modifier.size(23.dp)
+                )
+            }
         }
     }
 }
