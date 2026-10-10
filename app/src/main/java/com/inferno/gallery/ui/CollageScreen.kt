@@ -1247,7 +1247,7 @@ private suspend fun saveCollageToDevice(
     val values = android.content.ContentValues().apply {
         put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
         put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
-        put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES + "/PhotonGallery_Collages")
+        put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES + "/Pitchcraft_Collages")
     }
     val resolver = context.contentResolver
     val outputUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
