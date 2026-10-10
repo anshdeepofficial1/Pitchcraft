@@ -55,29 +55,7 @@ jobs:
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          script: |
-            set -e
-            APK="app/build/outputs/apk/debug/app-debug.apk"
-            test -f "$APK"
-            adb logcat -c
-            adb install -r "$APK"
-            adb shell am force-stop com.anshdeep.pitchcraft.debug || true
-            adb shell am start -W -n com.anshdeep.pitchcraft.debug/com.inferno.gallery.MainActivity
-            sleep 12
-            PID="$(adb shell pidof com.anshdeep.pitchcraft.debug | tr -d '\r')"
-            if [ -z "$PID" ]; then
-              echo "Pitchcraft process is not alive after launch."
-              adb logcat -d -t 1000
-              exit 1
-            fi
-            adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" || true
-            adb logcat -d -t 1500 > pitchcraft-logcat.txt
-            if grep -E "FATAL EXCEPTION|Process: com\.anshdeep\.pitchcraft\.debug|AndroidRuntime:.*FATAL" pitchcraft-logcat.txt; then
-              echo "Fatal runtime crash detected."
-              cat pitchcraft-logcat.txt
-              exit 1
-            fi
-            echo "Runtime smoke test passed. PID=$PID"
+          script: bash .github/scripts/emulator-smoke.sh
 
       - name: Upload runtime log
         if: always()
