@@ -224,7 +224,7 @@ fun SettingsScreen(
             title = { Text("Privacy Notice", fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    text = "Photon Gallery is built with a privacy-first approach.\n\n" +
+                    text = "Pitchcraft is built with a privacy-first approach.\n\n" +
                             "• All Smart Search, face detection, and OCR processing happens completely on your device.\n\n" +
                             "• No telemetry, usage statistics, tracking analytics, or personal data is collected or uploaded to any remote servers.\n\n" +
                             "• The application source code is fully open for anyone to inspect.",
@@ -1634,7 +1634,7 @@ fun SettingsScreen(
                                         ) {
                                             androidx.compose.foundation.Image(
                                                 painter = painterResource(id = R.drawable.launcher_icon_fg),
-                                                contentDescription = "Photon Gallery Logo",
+                                                contentDescription = "Pitchcraft Logo",
                                                 modifier = Modifier
                                                     .size(68.dp)
                                                     .clip(cookieShape)
@@ -1644,7 +1644,7 @@ fun SettingsScreen(
                                         Spacer(modifier = Modifier.height(14.dp))
 
                                         Text(
-                                            text = "Photon Gallery",
+                                            text = "Pitchcraft",
                                             style = MaterialTheme.typography.displaySmall,
                                             color = MaterialTheme.colorScheme.onSurface,
                                             fontWeight = FontWeight.Bold
@@ -1835,7 +1835,7 @@ fun SettingsScreen(
                                         {
                                             ClickableSettingItem(
                                                 title = "Source Code on GitHub",
-                                                subtitle = "Inspect or contribute to Photon Gallery",
+                                                subtitle = "Inspect or contribute to Pitchcraft",
                                                 icon = ImageVector.vectorResource(R.drawable.ic_ms_code),
                                                 onClick = { uriHandler.openUri("https://github.com/Bn5prS/Photon_Gallery") }
                                             )
@@ -1843,10 +1843,10 @@ fun SettingsScreen(
                                         {
                                             ClickableSettingItem(
                                                 title = "Check for Updates",
-                                                subtitle = "Photon Gallery v1.0.0 (Build 1) is up to date",
+                                                subtitle = "Pitchcraft v1.0.0 (Build 1) is up to date",
                                                 icon = ImageVector.vectorResource(R.drawable.ic_ms_refresh),
                                                 onClick = {
-                                                    Toast.makeText(context, "Photon Gallery is up to date!", Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(context, "Pitchcraft is up to date!", Toast.LENGTH_SHORT).show()
                                                 }
                                             )
                                         },
