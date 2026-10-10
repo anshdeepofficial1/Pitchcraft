@@ -351,6 +351,15 @@ fun GalleryScreen(
                     alpha = gridAlpha
                 }
         ) {
+            if (isMainTab && !isSelectionMode) {
+                ReferenceGallerySurface(
+                    pagedMedia = pagedMedia,
+                    onMediaClick = onMediaClick,
+                    onMediaLongClick = onMediaLongClick,
+                    contentPadding = contentPadding,
+                    modifier = modifier
+                )
+            } else {
             com.inferno.gallery.ui.components.PhotonGrid(
                 pagedMedia = pagedMedia,
                 lazyGridState = lazyGridState,
@@ -369,6 +378,7 @@ fun GalleryScreen(
                 contentPadding = contentPadding,
                 timelineLayoutMode = timelineLayoutMode
             )
+            }
         }
 
         // ── Initial sync loading ────────────────────────────────────────────
@@ -424,16 +434,23 @@ fun GalleryScreen(
                 null -> "No photos yet" to "Photos and videos on your device will appear here."
                 else -> "Album is empty" to "\"$bucketName\" has no photos or videos."
             }
-            PhotonEmptyState(
-                icon = emptyIcon,
-                title = title,
-                subtitle = subtitle,
-                modifier = Modifier.fillMaxSize(),
-                action = null
-            )
+            if (isMainTab) {
+                ReferenceEmptyGallery(
+                    modifier = Modifier.fillMaxSize(),
+                    subtitle = subtitle
+                )
+            } else {
+                PhotonEmptyState(
+                    icon = emptyIcon,
+                    title = title,
+                    subtitle = subtitle,
+                    modifier = Modifier.fillMaxSize(),
+                    action = null
+                )
+            }
         }
 
-        FastScroller(
+        if (!isMainTab || isSelectionMode) FastScroller(
             lazyGridState = lazyGridState,
             totalItems = totalItems,
             modifier = Modifier
