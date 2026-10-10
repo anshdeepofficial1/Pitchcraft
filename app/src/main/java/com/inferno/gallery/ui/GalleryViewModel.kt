@@ -2,6 +2,8 @@
 
 package com.inferno.gallery.ui
 
+import androidx.room.withTransaction
+
 import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
@@ -419,6 +421,147 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
             settingsRepository.updateLibraryScopeMode(com.inferno.gallery.data.LibraryScopeMode.ALL)
             settingsRepository.updateExcludedFolders(emptySet())
         }
+    }
+
+
+    // ── Local People / Face Recognition ──
+    val people: StateFlow<List<com.inferno.gallery.data.db.PersonClusterEntity>> =
+        database.faceDao().observePeople().stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    val faceProgress = com.inferno.gallery.data.IndexingProgressManager.faceProgress
+
+    private val _personMedia = MutableStateFlow<List<GalleryItem>>(emptyList())
+    val personMedia: StateFlow<List<GalleryItem>> = _personMedia.asStateFlow()
+
+    fun loadPersonMedia(clusterId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val ids = database.faceDao().getMediaIdsForCluster(clusterId)
+            val excluded = excludedFolders.value
+            _personMedia.value = database.mediaDao().getMediaByIdsList(ids)
+                .filter { !excluded.contains(it.bucketName) && it.bucketName != "Trash" }
+                .sortedByDescending { it.dateAdded }
+                .map { entity ->
+                    val uri = Uri.parse(entity.uriString)
+                    val (exists, resolved) = resolveItemFields(uri, entity.filePath)
+                    GalleryItem(
+                        id = entity.id.toString(),
+                        uri = uri,
+                        bucketName = entity.bucketName,
+                        dateAdded = entity.dateAdded,
+                        size = entity.size,
+                        name = entity.name,
+                        dateModified = entity.dateModified,
+                        path = entity.filePath,
+                        isVideo = entity.isVideo,
+                        durationMs = entity.durationMs,
+                        localExists = exists,
+                        resolvedUri = resolved,
+                        latitude = entity.latitude,
+                        longitude = entity.longitude
+                    )
+                }
+        }
+    }
+
+    fun renamePerson(clusterId: Long, name: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            database.faceDao().renameCluster(clusterId, name.trim())
+        }
+    }
+
+    fun setPersonHidden(clusterId: Long, hidden: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            database.faceDao().setClusterHidden(clusterId, hidden)
+        }
+    }
+
+    fun setPersonFavorite(clusterId: Long, favorite: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            database.faceDao().setClusterFavorite(clusterId, favorite)
+        }
+    }
+
+    fun mergePeople(fromClusterId: Long, intoClusterId: Long) {
+        if (fromClusterId == intoClusterId) return
+        viewModelScope.launch(Dispatchers.IO) {
+            database.withTransaction {
+                val from = database.faceDao().getCluster(fromClusterId) ?: return@withTransaction
+                val into = database.faceDao().getCluster(intoClusterId) ?: return@withTransaction
+                database.faceDao().moveFacesToCluster(fromClusterId, intoClusterId)
+                val allFaces = database.faceDao().getFacesForCluster(intoClusterId)
+                val centroid = averageEmbedding(allFaces.map { it.embedding })
+                database.faceDao().updateCluster(
+                    into.copy(
+                        name = into.name ?: from.name,
+                        faceCount = allFaces.size,
+                        centroid = centroid,
+                        coverFaceId = into.coverFaceId ?: from.coverFaceId,
+                        coverMediaId = into.coverMediaId ?: from.coverMediaId,
+                        coverCropPath = into.coverCropPath ?: from.coverCropPath,
+                        isFavorite = into.isFavorite || from.isFavorite,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+                database.faceDao().deleteCluster(fromClusterId)
+            }
+        }
+    }
+
+    fun splitFaceIntoNewPerson(faceId: Long, originalClusterId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            database.withTransaction {
+                val old = database.faceDao().getCluster(originalClusterId) ?: return@withTransaction
+                val face = database.faceDao().getFacesForCluster(originalClusterId)
+                    .firstOrNull { it.id == faceId } ?: return@withTransaction
+
+                val newClusterId = database.faceDao().insertCluster(
+                    com.inferno.gallery.data.db.PersonClusterEntity(
+                        coverFaceId = face.id,
+                        coverMediaId = face.mediaId,
+                        coverCropPath = face.cropCachePath,
+                        faceCount = 1,
+                        centroid = face.embedding.copyOf()
+                    )
+                )
+                database.faceDao().moveFaceToCluster(face.id, newClusterId)
+
+                val remaining = database.faceDao().getFacesForCluster(originalClusterId)
+                if (remaining.isEmpty()) {
+                    database.faceDao().deleteCluster(originalClusterId)
+                } else {
+                    val cover = remaining.first()
+                    database.faceDao().updateCluster(
+                        old.copy(
+                            faceCount = remaining.size,
+                            centroid = averageEmbedding(remaining.map { it.embedding }),
+                            coverFaceId = if (old.coverFaceId == face.id) cover.id else old.coverFaceId,
+                            coverMediaId = if (old.coverFaceId == face.id) cover.mediaId else old.coverMediaId,
+                            coverCropPath = if (old.coverFaceId == face.id) cover.cropCachePath else old.coverCropPath,
+                            updatedAt = System.currentTimeMillis()
+                        )
+                    )
+                }
+            }
+            loadPersonMedia(originalClusterId)
+        }
+    }
+
+    private fun averageEmbedding(vectors: List<FloatArray>): FloatArray {
+        if (vectors.isEmpty()) return FloatArray(0)
+        val size = vectors.first().size
+        val out = FloatArray(size)
+        for (v in vectors) {
+            for (i in 0 until minOf(size, v.size)) out[i] += v[i]
+        }
+        var sum = 0f
+        for (x in out) sum += x * x
+        val norm = kotlin.math.sqrt(sum).coerceAtLeast(1e-12f)
+        for (i in out.indices) out[i] /= norm
+        return out
     }
 
     // ── Private Space ──
