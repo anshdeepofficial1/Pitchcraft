@@ -15,6 +15,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.LocalContentColor
 import com.inferno.gallery.ui.theme.ShapeFull
 import com.inferno.gallery.ui.utils.pressScale
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -54,6 +55,7 @@ import com.inferno.gallery.ui.theme.MotionTokens
 import com.inferno.gallery.ui.theme.NavDockLabelStyle
 import com.inferno.gallery.ui.utils.tick
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.res.painterResource
 import com.inferno.gallery.R
 
 /**
@@ -72,6 +74,7 @@ fun FloatingNavigationPill(
     onNavigateToPhotos: () -> Unit,
     onNavigateToAlbums: () -> Unit,
     onNavigateToSearch: () -> Unit,
+    onNavigateToPeople: () -> Unit,
     modifier: Modifier = Modifier,
     onNavigateToFavorites: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
@@ -119,18 +122,17 @@ fun FloatingNavigationPill(
                      .clickable(onClick = onCentralAction),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    "P",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Black,
-                    color = Color(0xFF9D4C0E)
+                Image(
+                    painter = painterResource(R.drawable.pitchcraft_mark),
+                    contentDescription = "Create album",
+                    modifier = Modifier.size(34.dp)
                 )
             }
             ReferenceDockIcon(
-                icon = R.drawable.ic_ms_search,
-                label = "Search",
-                selected = currentRoute == "search",
-                onClick = onNavigateToSearch
+                icon = R.drawable.ic_ms_person,
+                label = "People",
+                selected = currentRoute == "all_people",
+                onClick = onNavigateToPeople
             )
             ReferenceDockIcon(
                 icon = R.drawable.ic_ms_star,
