@@ -183,7 +183,7 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
     init { refresh() }
 
     fun refresh() {
-        androidx.lifecycle.viewModelScope.launch {
+        viewModelScope.launch {
             loading = true
             val all = withContext(Dispatchers.IO) { repo.loadMedia() }
             val imageCount = all.count { !it.isVideo }
@@ -199,7 +199,7 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun refreshFaceState() {
-        androidx.lifecycle.viewModelScope.launch {
+        viewModelScope.launch {
             val imageCount = media.count { !it.isVideo }
             stats = withContext(Dispatchers.IO) { db.stats(imageCount) }
             people = withContext(Dispatchers.IO) { db.getPeople() }
@@ -212,35 +212,35 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun resetAndScan() {
-        androidx.lifecycle.viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(Dispatchers.IO) {
             db.clearFaceIndex()
             FaceScanWorker.enqueue(getApplication())
         }
     }
 
     fun toggleFavorite(id: Long) {
-        androidx.lifecycle.viewModelScope.launch {
+        viewModelScope.launch {
             withContext(Dispatchers.IO) { db.toggleFavorite(id) }
             favorites = withContext(Dispatchers.IO) { db.favoriteIds() }
         }
     }
 
     fun renamePerson(id: Long, name: String) {
-        androidx.lifecycle.viewModelScope.launch {
+        viewModelScope.launch {
             withContext(Dispatchers.IO) { db.renamePerson(id, name) }
             people = withContext(Dispatchers.IO) { db.getPeople() }
         }
     }
 
     fun hidePerson(id: Long) {
-        androidx.lifecycle.viewModelScope.launch {
+        viewModelScope.launch {
             withContext(Dispatchers.IO) { db.hidePerson(id) }
             people = withContext(Dispatchers.IO) { db.getPeople() }
         }
     }
 
     fun mergePeople(from: Long, into: Long) {
-        androidx.lifecycle.viewModelScope.launch {
+        viewModelScope.launch {
             withContext(Dispatchers.IO) { db.mergePeople(from, into) }
             people = withContext(Dispatchers.IO) { db.getPeople() }
         }
