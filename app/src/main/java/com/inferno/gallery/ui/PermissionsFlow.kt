@@ -141,7 +141,7 @@ fun PermissionOnboardingScreen(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         Image(
-                            painter = painterResource(id = R.drawable.ic_pitchcraft_material),
+                            painter = painterResource(id = R.drawable.pitchcraft_logo_foreground),
                             contentDescription = "Pitchcraft",
                             modifier = Modifier
                                 .size(72.dp)
@@ -153,7 +153,7 @@ fun PermissionOnboardingScreen(
                 Spacer(modifier = Modifier.height(20.dp))
 
                 Text(
-                    text = "Your memories, beautifully yours",
+                    text = "Your memories,\nbeautifully yours",
                     style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
