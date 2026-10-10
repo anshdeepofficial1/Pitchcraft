@@ -218,7 +218,7 @@ interface MediaDao {
         // The FTS5 virtual table is instead created manually in DatabaseProvider's
         // RoomDatabase.Callback onCreate hook using raw CREATE VIRTUAL TABLE SQL.
     ],
-    version = 26,
+    version = 27,
     exportSchema = true
 )
 @androidx.room.TypeConverters(EmbeddingConverter::class)
