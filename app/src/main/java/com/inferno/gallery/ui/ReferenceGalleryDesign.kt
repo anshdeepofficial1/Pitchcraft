@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -127,6 +128,8 @@ private fun ReferenceChip(title: String, selected: Boolean, onClick: () -> Unit)
 internal fun ReferenceGallerySurface(
     pagedMedia: LazyPagingItems<GalleryListItem>,
     lazyGridState: LazyGridState,
+    viewMode: ViewMode,
+    gridCellsCount: Int,
     onMediaClick: (GalleryItem) -> Unit,
     onMediaLongClick: (GalleryItem) -> Unit,
     isSelectionMode: Boolean,
@@ -146,8 +149,10 @@ internal fun ReferenceGallerySurface(
         (pagedMedia[it] as? GalleryListItem.Item)?.galleryItem
     }
 
+    val actualColumnCount = if (viewMode == ViewMode.Immersive) 1 else gridCellsCount.coerceIn(2, 4)
+
     LazyVerticalGrid(
-        columns = GridCells.Fixed(1),
+        columns = GridCells.Fixed(actualColumnCount),
         state = lazyGridState,
         modifier = modifier
             .fillMaxSize()
@@ -169,7 +174,7 @@ internal fun ReferenceGallerySurface(
         verticalArrangement = Arrangement.spacedBy(15.dp)
     ) {
         if (first != null) {
-            item(key = "reference_cover") {
+            item(key = "reference_cover", span = { GridItemSpan(maxLineSpan) }) {
                 BoxWithConstraints(
                     modifier = Modifier.fillMaxWidth().height(if (second != null) 355.dp else 270.dp)
                 ) {
@@ -207,7 +212,7 @@ internal fun ReferenceGallerySurface(
             }
         }
 
-        item(key = "reference_collection_label") {
+        item(key = "reference_collection_label", span = { GridItemSpan(maxLineSpan) }) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -253,7 +258,9 @@ internal fun ReferenceGallerySurface(
                         val photo = entry.galleryItem
                         ReferencePhotoCard(
                             item = photo,
-                            modifier = Modifier.fillMaxWidth().height(225.dp),
+                            modifier = Modifier.fillMaxWidth().height(
+                                if (actualColumnCount == 1) 225.dp else 180.dp
+                            ),
                             onClick = { onMediaClick(photo) },
                             onLongClick = { onMediaLongClick(photo) },
                             overline = if (photo.isVideo) "VIDEO" else "PHOTO",
