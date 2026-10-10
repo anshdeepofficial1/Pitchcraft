@@ -106,7 +106,7 @@ private fun ReferenceChip(title: String, selected: Boolean, onClick: () -> Unit)
                 CircleShape
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 9.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -167,7 +167,7 @@ internal fun ReferenceGallerySurface(
             ),
         contentPadding = PaddingValues(
             start = 16.dp,
-            top = contentPadding.calculateTopPadding() + 15.dp,
+            top = contentPadding.calculateTopPadding() + 29.dp,
             end = 16.dp,
             bottom = contentPadding.calculateBottomPadding() + 18.dp
         ),
