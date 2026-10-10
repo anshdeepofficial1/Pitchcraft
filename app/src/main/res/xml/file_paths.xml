@@ -6,4 +6,6 @@
     <files-path name="vault_files" path="vault/" />
     <!-- Crash log files for sharing -->
     <files-path name="crash_logs" path="crash_logs/" />
+    <!-- User-downloaded Pitchcraft update APKs -->
+    <cache-path name="app_updates" path="updates/" />
 </paths>
