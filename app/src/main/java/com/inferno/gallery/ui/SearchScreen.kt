@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -53,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -95,6 +98,7 @@ fun SearchScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(ReferencePalette.Espresso, ReferencePalette.Black)))
             .padding(contentPadding)
     ) {
         // ── Active Search Bar (Filled Tonal Container) ──────────────────────────
@@ -104,11 +108,11 @@ fun SearchScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .height(56.dp),
-            shape = ShapeExtraLarge,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.82f),
+            shape = RoundedCornerShape(28.dp),
+            color = ReferencePalette.SoftCard.copy(alpha = 0.92f),
             border = androidx.compose.foundation.BorderStroke(
                 1.dp,
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                ReferencePalette.Outline
             ),
             shadowElevation = 8.dp
         ) {
