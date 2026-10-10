@@ -295,7 +295,7 @@ internal fun ReferenceGallerySurface(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ReferencePhotoCard(
+internal fun ReferencePhotoCard(
     item: GalleryItem,
     modifier: Modifier,
     overline: String,
