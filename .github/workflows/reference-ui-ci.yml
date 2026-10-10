@@ -77,6 +77,7 @@ jobs:
             pitchcraft-people-scanning-reference.png
             pitchcraft-search-reference.png
             pitchcraft-people-reference.png
+            pitchcraft-favorites-reference.png
             pitchcraft-reference-ui.xml
             pitchcraft-reference-photos.xml
           if-no-files-found: ignore
@@ -129,5 +130,6 @@ jobs:
             pitchcraft-people-scanning-reference.png
             pitchcraft-search-reference.png
             pitchcraft-people-reference.png
+            pitchcraft-favorites-reference.png
           if-no-files-found: ignore
           retention-days: 7
