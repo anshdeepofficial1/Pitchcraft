@@ -865,6 +865,9 @@ fun MainAppLayout(
                         val encoded = android.net.Uri.encode(bucketName)
                         nestedNavController.navigate("album/$encoded")
                     },
+                    onPersonClick = { clusterId ->
+                        nestedNavController.navigate("person/$clusterId")
+                    },
                     onNavigateToVault = onNavigateToVault,
                     onNavigateToDuplicateCleaner = { nestedNavController.navigate("duplicate_cleaner") },
                     onNavigateToPhotoMap = { nestedNavController.navigate("photo_map") },
@@ -984,6 +987,17 @@ fun MainAppLayout(
                     )
                 }
             }
+            composable("person/{clusterId}") { backStackEntry ->
+                val clusterId = backStackEntry.arguments?.getString("clusterId")?.toLongOrNull()
+                    ?: return@composable
+                PersonDetailScreen(
+                    clusterId = clusterId,
+                    viewModel = viewModel,
+                    onBack = { nestedNavController.popBackStack() },
+                    onPhotoClick = onPhotoClick
+                )
+            }
+
             composable("search") {
                 SearchScreen(
                     sharedTransitionScope = sharedTransitionScope,
