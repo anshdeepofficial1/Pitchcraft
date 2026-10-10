@@ -554,7 +554,7 @@ fun MainAppLayout(
                                     val titleText = when (currentRoute) {
                                         "albums" -> "Albums"
                                         "search" -> "Search"
-                                        else -> "Photon Gallery"
+                                        else -> "Pitchcraft"
                                     }
                                     Text(
                                         titleText,
