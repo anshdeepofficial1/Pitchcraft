@@ -434,6 +434,7 @@ fun MainAppLayout(
                 currentRoute != "story_viewer" &&
                 currentRoute != "places_list" &&
                 currentRoute != "people_processing" &&
+                currentRoute != "all_people" &&
                 currentRoute != "person/{clusterId}" &&
                 currentRoute != "person_story/{clusterId}") {
                 Column(
@@ -917,6 +918,9 @@ fun MainAppLayout(
                     onPeopleProgressClick = {
                         nestedNavController.navigate("people_processing")
                     },
+                    onNavigateToAllPeople = {
+                        nestedNavController.navigate("all_people")
+                    },
                     onNavigateToVault = onNavigateToVault,
                     onNavigateToDuplicateCleaner = { nestedNavController.navigate("duplicate_cleaner") },
                     onNavigateToPhotoMap = { nestedNavController.navigate("photo_map") },
@@ -1036,6 +1040,19 @@ fun MainAppLayout(
                     )
                 }
             }
+            composable("all_people") {
+                AllPeopleScreen(
+                    viewModel = viewModel,
+                    onBack = { nestedNavController.popBackStack() },
+                    onPersonClick = { clusterId ->
+                        nestedNavController.navigate("person/$clusterId")
+                    },
+                    onProgressClick = {
+                        nestedNavController.navigate("people_processing")
+                    }
+                )
+            }
+
             composable("people_processing") {
                 PeopleProcessingScreen(
                     viewModel = viewModel,
