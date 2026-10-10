@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -38,6 +39,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
+import com.inferno.gallery.R
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -159,7 +163,7 @@ fun AllPeopleScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(220.dp)
+                            .height(274.dp)
                             .clickable { viewModel.startFaceIndexing() }
                             .background(
                                 Brush.linearGradient(
@@ -175,20 +179,49 @@ fun AllPeopleScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(66.dp)
+                                    .background(
+                                        Brush.linearGradient(
+                                            listOf(ReferencePalette.AmberBright, ReferencePalette.Amber)
+                                        ),
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = ImageVector.vectorResource(R.drawable.ic_reference_people),
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(30.dp)
+                                )
+                            }
                             Text(
-                                "No face groups yet",
+                                "Bring your people together",
                                 fontWeight = FontWeight.SemiBold,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = Color.White
+                                style = MaterialTheme.typography.titleLarge,
+                                color = ReferencePalette.Cream
                             )
                             Text(
-                                "Tap to privately find familiar faces in your gallery.",
+                                "Find familiar faces in your gallery. Everything stays on this device.",
                                 color = ReferencePalette.Secondary,
                                 style = MaterialTheme.typography.bodySmall,
                                 textAlign = TextAlign.Center
                             )
-                            Text("Start scanning", color = ReferencePalette.AmberBright,
-                                fontWeight = FontWeight.SemiBold)
+                            Surface(
+                                color = ReferencePalette.AmberBright,
+                                contentColor = ReferencePalette.Black,
+                                shape = CircleShape,
+                                modifier = Modifier.padding(top = 5.dp)
+                            ) {
+                                Text(
+                                    "Start private scan",
+                                    modifier = Modifier.padding(horizontal = 22.dp, vertical = 11.dp),
+                                    fontWeight = FontWeight.SemiBold,
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                            }
                         }
                     }
                 }
