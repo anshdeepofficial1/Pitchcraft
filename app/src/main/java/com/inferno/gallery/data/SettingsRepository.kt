@@ -154,7 +154,7 @@ class SettingsRepository private constructor(private val context: Context) {
 
     val viewModeFlow: Flow<String> = context.dataStore.data
         .map { preferences ->
-            preferences[VIEW_MODE] ?: "Grouped"
+            preferences[VIEW_MODE] ?: "Immersive"
         }
 
     val sortOrderFlow: Flow<String> = context.dataStore.data
