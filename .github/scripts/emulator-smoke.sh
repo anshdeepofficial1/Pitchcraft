@@ -8,8 +8,20 @@ LOGFILE="pitchcraft-logcat.txt"
 
 echo "Checking APK: $APK"
 test -f "$APK"
+echo "Emulator Android API: $(adb shell getprop ro.build.version.sdk | tr -d '\\r')"
+echo "Emulator ABI list: $(adb shell getprop ro.product.cpu.abilist | tr -d '\\r')"
+echo "APK size (bytes): $(stat -c '%s' "$APK")"
 
-adb install -r "$APK"
+# Must be a genuinely fresh installation. Never hide a conflict using -r.
+if adb shell pm list packages "$PACKAGE" | grep -q "package:$PACKAGE"; then
+  echo "Emulator has a pre-existing copy. Fresh-install test is invalid."
+  exit 1
+fi
+
+echo "Testing FIRST-TIME installation (not an update)..."
+adb install "$APK"
+adb shell pm path "$PACKAGE" | tee /tmp/pitchcraft-pm-path.txt
+grep -q "package:" /tmp/pitchcraft-pm-path.txt
 adb shell am force-stop "$PACKAGE" || true
 adb logcat -c
 rm -f "$LOGFILE"
