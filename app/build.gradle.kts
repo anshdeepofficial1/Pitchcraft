@@ -15,7 +15,9 @@ android {
 
     defaultConfig {
         applicationId = "com.anshdeep.pitchcraft"
-        minSdk = 31
+        // Allow Android 8.0+ devices; CI checks real install/launch on older Android.
+        // Android 11 and below were blocked by the previous minSdk = 31.
+        minSdk = 26
         targetSdk = 36
         versionCode = 3
         versionName = "1.0.2"
