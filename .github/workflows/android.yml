@@ -29,11 +29,20 @@ jobs:
           "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
       - name: Make Gradle executable
         run: chmod +x ./gradlew
+
+      - name: Bundle verified MobileFaceNet model
+        run: |
+          mkdir -p app/src/main/assets/models
+          curl -fL --retry 3 --connect-timeout 20 \
+            https://models.ente.com/mobilefacenet_portable_static_b1.onnx \
+            -o app/src/main/assets/models/mobilefacenet_portable_static_b1.onnx
+          echo "0763fc33f54e138476194da95987e133b3e976075a6b1d3e1b2caedb251b1a36  app/src/main/assets/models/mobilefacenet_portable_static_b1.onnx" | sha256sum -c -
+
       - name: Build universal debug APK
         run: ./gradlew :app:assembleDebug --stacktrace
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Pitchcraft-debug-apk
-          path: app/build/outputs/apk/debug/*universal*.apk
+          path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
