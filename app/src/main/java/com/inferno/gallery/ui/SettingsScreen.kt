@@ -1722,7 +1722,7 @@ fun SettingsScreen(
                                     }
                                 }
 
-                                // 2. Developer Profile Card (Bn5prS)
+                                // 2. Developer Profile Card
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -1765,8 +1765,8 @@ fun SettingsScreen(
                                                     .padding(3.dp)
                                             ) {
                                                 SubcomposeAsyncImage(
-                                                    model = "https://github.com/Bn5prS.png",
-                                                    contentDescription = "Bn5prS GitHub Profile Picture",
+                                                    model = "https://github.com/anshdeepofficial1.png",
+                                                    contentDescription = "Anshdeep Singh GitHub Profile Picture",
                                                     contentScale = ContentScale.Crop,
                                                     modifier = Modifier
                                                         .fillMaxSize()
@@ -1799,13 +1799,13 @@ fun SettingsScreen(
 
                                             Column(modifier = Modifier.weight(1f)) {
                                                 Text(
-                                                    text = "Bn5prS",
+                                                    text = "Anshdeep Singh",
                                                     style = MaterialTheme.typography.titleMedium,
                                                     color = MaterialTheme.colorScheme.onSurface,
                                                     fontWeight = FontWeight.Bold
                                                 )
                                                 Text(
-                                                    text = "Creator & Lead Architect",
+                                                    text = "Developer & Creator",
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
@@ -1813,7 +1813,7 @@ fun SettingsScreen(
                                                 Surface(
                                                     shape = CircleShape,
                                                     color = MaterialTheme.colorScheme.surfaceVariant,
-                                                    onClick = { uriHandler.openUri("https://github.com/Bn5prS") }
+                                                    onClick = { uriHandler.openUri("https://github.com/anshdeepofficial1") }
                                                 ) {
                                                     Row(
                                                         verticalAlignment = Alignment.CenterVertically,
@@ -1827,7 +1827,7 @@ fun SettingsScreen(
                                                             modifier = Modifier.size(14.dp)
                                                         )
                                                         Text(
-                                                            text = "@Bn5prS on GitHub",
+                                                            text = "@anshdeepofficial1 on GitHub",
                                                             style = MaterialTheme.typography.labelSmall,
                                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
