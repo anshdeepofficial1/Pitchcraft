@@ -460,9 +460,9 @@ fun ImageEditorScreen(
                         }
                     } else {
                         val values = ContentValues().apply {
-                            put(MediaStore.Images.Media.DISPLAY_NAME, "Photon_Edit_${System.currentTimeMillis()}.jpg")
+                            put(MediaStore.Images.Media.DISPLAY_NAME, "Pitchcraft_Edit_${System.currentTimeMillis()}.jpg")
                             put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-                            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Photon Gallery")
+                            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Pitchcraft")
                             put(MediaStore.Images.Media.IS_PENDING, 1)
                         }
                         val newUri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
