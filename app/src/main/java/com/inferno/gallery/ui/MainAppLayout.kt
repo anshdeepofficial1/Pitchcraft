@@ -663,7 +663,7 @@ fun MainAppLayout(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                if (currentRoute == "photos") {
+                                if (currentRoute == "photos" || currentRoute == "albums" || currentRoute == "search") {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(11.dp),
@@ -699,7 +699,11 @@ fun MainAppLayout(
                                                 color = Color.White
                                             )
                                             Text(
-                                                text = pitchcraftGreeting(),
+                                                text = when (currentRoute) {
+                                                    "albums" -> "Your collections"
+                                                    "search" -> "Find a memory"
+                                                    else -> pitchcraftGreeting()
+                                                },
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = Color.White.copy(alpha = 0.68f)
                                             )
