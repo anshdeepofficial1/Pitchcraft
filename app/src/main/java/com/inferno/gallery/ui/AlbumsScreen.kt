@@ -112,6 +112,7 @@ fun AlbumsScreen(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     onAlbumClick: (String) -> Unit = {},
     onPersonClick: (String) -> Unit = {},
+    onPeopleProgressClick: () -> Unit = {},
     onNavigateToVault: () -> Unit = {},
     onNavigateToDuplicateCleaner: () -> Unit = {},
     onNavigateToPhotoMap: () -> Unit = {},
@@ -503,8 +504,10 @@ fun AlbumsScreen(
                         if (faceProgress.isIndexing) {
                             item(key = "people_scan_progress") {
                                 Surface(
+                                    onClick = onPeopleProgressClick,
                                     shape = ShapeLargeIncreased,
                                     color = MaterialTheme.colorScheme.primaryContainer,
+                                    shadowElevation = 4.dp,
                                     modifier = Modifier.width(190.dp)
                                 ) {
                                     Column(Modifier.padding(16.dp)) {
