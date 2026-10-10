@@ -7,6 +7,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -22,6 +23,36 @@ import com.materialkolor.ktx.animateColorScheme
 import com.materialkolor.rememberDynamicColorScheme
 
 import androidx.compose.ui.graphics.compositeOver
+
+private val PitchcraftDarkScheme = darkColorScheme(
+    primary = Color(0xFFFFB45E),
+    onPrimary = Color(0xFF3F1D00),
+    primaryContainer = Color(0xFF7A3504),
+    onPrimaryContainer = Color(0xFFFFDDBB),
+    secondary = Color(0xFFEFC29A),
+    onSecondary = Color(0xFF432B17),
+    secondaryContainer = Color(0xFF5C4028),
+    onSecondaryContainer = Color(0xFFFFDCC0),
+    tertiary = Color(0xFFFFC46B),
+    onTertiary = Color(0xFF402D00),
+    tertiaryContainer = Color(0xFF5C4300),
+    onTertiaryContainer = Color(0xFFFFDF96),
+    background = Color(0xFF090806),
+    onBackground = Color(0xFFF2E8DD),
+    surface = Color(0xFF0D0B08),
+    onSurface = Color(0xFFF2E8DD),
+    surfaceVariant = Color(0xFF51463C),
+    onSurfaceVariant = Color(0xFFD8C6B6),
+    outline = Color(0xFFA39180),
+    outlineVariant = Color(0xFF51463C),
+    surfaceDim = Color(0xFF090806),
+    surfaceBright = Color(0xFF362E27),
+    surfaceContainerLowest = Color(0xFF050403),
+    surfaceContainerLow = Color(0xFF12100D),
+    surfaceContainer = Color(0xFF17130F),
+    surfaceContainerHigh = Color(0xFF211B15),
+    surfaceContainerHighest = Color(0xFF2C241D),
+)
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  PhotonGalleryTheme — M3 Expressive entry point
@@ -42,10 +73,10 @@ import androidx.compose.ui.graphics.compositeOver
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PhotonGalleryTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    darkTheme: Boolean = true,
+    dynamicColor: Boolean = false,
     useAmoledBlack: Boolean = false,
-    appSeedColor: Int = 0xFF0A6EFF.toInt(),
+    appSeedColor: Int = 0xFFD97716.toInt(),
     paletteStyle: PaletteStyle = PaletteStyle.TonalSpot,
     contrastLevel: Double = 0.0,
     invertColors: Boolean = false,
@@ -112,6 +143,7 @@ fun PhotonGalleryTheme(
                 surfaceVariant = Color(0xFF161616),
             )
         }
+        schemeIsDark && seedArgb == 0xFFD97716.toInt() -> PitchcraftDarkScheme
         !schemeIsDark -> {
             // Soften surfaceContainerLowest from stark #FFFFFF with a warm 40% canvas tint (60% pure white)
             val softenedSheetWhite = baseColorScheme.surfaceContainer.copy(alpha = 0.40f).compositeOver(Color.White)

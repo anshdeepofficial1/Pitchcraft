@@ -133,7 +133,7 @@ class SettingsRepository private constructor(private val context: Context) {
 
     val themeModeFlow: Flow<String> = context.dataStore.data
         .map { preferences ->
-            preferences[THEME_MODE] ?: "SYSTEM"
+            preferences[THEME_MODE] ?: "DARK"
         }
 
     val viewModeFlow: Flow<String> = context.dataStore.data
@@ -163,12 +163,12 @@ class SettingsRepository private constructor(private val context: Context) {
 
     val useAmoledBlackFlow: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[USE_AMOLED_BLACK] ?: true
+            preferences[USE_AMOLED_BLACK] ?: false
         }
 
     val appSeedColorFlow: Flow<Int> = context.dataStore.data
         .map { preferences ->
-            preferences[APP_SEED_COLOR] ?: 0xFF0A6EFF.toInt() // Default M3 Purple
+            preferences[APP_SEED_COLOR] ?: 0xFFD97716.toInt() // Pitchcraft warm amber
         }
 
     val themePaletteStyleFlow: Flow<String> = context.dataStore.data

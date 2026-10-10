@@ -16,6 +16,7 @@ import androidx.compose.material3.LocalContentColor
 import com.inferno.gallery.ui.theme.ShapeFull
 import com.inferno.gallery.ui.utils.pressScale
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -77,17 +78,18 @@ fun FloatingNavigationPill(
 
     Surface(
         modifier = modifier
-            .fillMaxWidth(0.82f)
-            .height(52.dp)
+            .fillMaxWidth(0.88f)
+            .height(58.dp)
+            .border(1.dp, Color.White.copy(alpha = 0.18f), ShapeFull)
             .pointerInput(Unit) {},
         shape = ShapeFull,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shadowElevation = 0.dp
+        color = Color(0xFFD06B12).copy(alpha = 0.92f),
+        shadowElevation = 18.dp
     ) {
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 5.dp, vertical = 4.dp),
+                .padding(horizontal = 7.dp, vertical = 6.dp),
             contentAlignment = Alignment.CenterStart
         ) {
             val totalWidth = maxWidth
@@ -112,7 +114,7 @@ fun FloatingNavigationPill(
                         translationX = animatedFraction * tabWidth.toPx()
                     }
                     .clip(ShapeFull)
-                    .background(MaterialTheme.colorScheme.secondaryContainer)
+                    .background(Color(0xFFF8F3EC))
             )
 
             // ── The 3 Interactive Tabs ──
@@ -178,9 +180,9 @@ fun SlidingPillTabItem(
 
     val contentColor by animateColorAsState(
         targetValue = if (isSelected) {
-            MaterialTheme.colorScheme.onSecondaryContainer
+            Color(0xFF9B4108)
         } else {
-            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
+            Color.White.copy(alpha = 0.92f)
         },
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioNoBouncy,
@@ -207,48 +209,9 @@ fun SlidingPillTabItem(
             ),
         contentAlignment = Alignment.Center
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(horizontal = 6.dp)
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
             CompositionLocalProvider(LocalContentColor provides contentColor) {
-                AnimatedVisibility(
-                    visible = isSelected,
-                    enter = fadeIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMediumLow
-                        )
-                    ) + expandHorizontally(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMediumLow
-                        )
-                    ),
-                    exit = fadeOut(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMediumLow
-                        )
-                    ) + shrinkHorizontally(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMediumLow
-                        )
-                    )
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        icon()
-                        Spacer(modifier = Modifier.width(5.dp))
-                    }
-                }
-
-                Text(
-                    text = label,
-                    style = NavDockLabelStyle,
-                    maxLines = 1
-                )
+                icon()
             }
         }
     }

@@ -52,12 +52,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         try {
             ThemeMode.valueOf(modeString)
         } catch (e: IllegalArgumentException) {
-            ThemeMode.SYSTEM
+            ThemeMode.DARK
         }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = ThemeMode.SYSTEM
+        initialValue = ThemeMode.DARK
     )
 
     fun setThemeMode(mode: ThemeMode) {
@@ -117,7 +117,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val hapticsEnabled: StateFlow<Boolean> = repository.hapticsEnabledFlow.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = true
+        initialValue = false
     )
 
     fun setHapticsEnabled(enabled: Boolean) {
@@ -165,7 +165,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val appSeedColor: StateFlow<Int> = repository.appSeedColorFlow.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = 0xFF0A6EFF.toInt() // Default Photon Blue
+        initialValue = 0xFFD97716.toInt() // Pitchcraft warm amber
     )
 
     fun setAppSeedColor(color: Int) {

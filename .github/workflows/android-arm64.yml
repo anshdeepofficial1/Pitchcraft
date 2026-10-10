@@ -57,7 +57,7 @@ jobs:
           python3 .github/scripts/check-native-16kb.py "$APK"
           META="$("$BUILD/aapt" dump badging "$APK")"
           printf '%s\n' "$META" | grep -E "^(package:|sdkVersion:|targetSdkVersion:|native-code:)"
-          printf '%s\n' "$META" | grep -q "package: name='com.anshdeep.pitchcraft.debug' versionCode='3'"
+          printf '%s\n' "$META" | grep -q "package: name='com.anshdeep.pitchcraft.debug' versionCode='4'"
           printf '%s\n' "$META" | grep -q "^native-code: 'arm64-v8a'$"
           python3 - "$APK" <<'PY'
           import sys,zipfile
@@ -71,7 +71,7 @@ jobs:
       - name: Upload ARM64 APK, direct APK inside ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: Pitchcraft-1.0.2-Android16-ARM64-FRESH-TEST-ONLY
+          name: Pitchcraft-1.0.3-Android16-ARM64-FRESH-TEST-ONLY
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30

@@ -45,7 +45,7 @@ jobs:
             exit 1
           fi
           grep -q 'applicationIdSuffix = ".debug"' app/build.gradle.kts
-          grep -q 'versionCode = 3' app/build.gradle.kts
+          grep -q 'versionCode = 4' app/build.gradle.kts
           grep -q 'minSdk = 26' app/build.gradle.kts
       - name: Build universal debug APK
         run: ./gradlew :app:assembleDebug --stacktrace
@@ -56,7 +56,7 @@ jobs:
           META="$("$SDKROOT/build-tools/36.0.0/aapt" dump badging "$APK" | head -n 1)"
           echo "$META"
           echo "$META" | grep -q "package: name='com.anshdeep.pitchcraft.debug'"
-          echo "$META" | grep -q "versionCode='3'"
+          echo "$META" | grep -q "versionCode='4'"
 
       - name: Verify install-ready APK archive, signature, SDK range and included ABIs
         run: |

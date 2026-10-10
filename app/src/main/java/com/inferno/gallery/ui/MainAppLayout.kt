@@ -12,6 +12,8 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -138,7 +140,15 @@ import java.io.File
 import androidx.compose.runtime.rememberCoroutineScope
 import com.inferno.gallery.data.SettingsRepository
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.res.painterResource
 import com.inferno.gallery.R
+
+private fun pitchcraftGreeting(): String = when (java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)) {
+    in 5..11 -> "Good morning"
+    in 12..16 -> "Good afternoon"
+    in 17..21 -> "Good evening"
+    else -> "Your memories, beautifully organized"
+}
 
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -575,28 +585,61 @@ fun MainAppLayout(
                         }
                     } else {
                         Surface(
-                            color = topBarColor,
+                            color = Color.Transparent,
                             shadowElevation = 0.dp
                         ) {
+                            Column(
+                                modifier = Modifier.background(
+                                    Brush.horizontalGradient(
+                                        listOf(
+                                            Color(0xFF090806),
+                                            Color(0xFF181008),
+                                            Color(0xFF251507)
+                                        )
+                                    )
+                                )
+                            ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(56.dp)
-                                    .padding(horizontal = 8.dp),
+                                    .height(if (currentRoute == "photos") 72.dp else 60.dp)
+                                    .padding(horizontal = 16.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 if (currentRoute == "photos") {
-                                    MorphingVariableTabRow(
-                                        tabs = listOf("Camera", "All Photos"),
-                                        selectedTabIndex = if (selectedFilter == 1) 0 else 1,
-                                        onTabSelected = { index ->
-                                            viewModel.setFilterIndex(if (index == 0) 1 else 0)
-                                        },
-                                        modifier = Modifier.padding(start = 4.dp),
-                                        fontSize = 14.sp,
-                                        lineHeight = 20.sp
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(11.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Surface(
+                                            modifier = Modifier
+                                                .size(44.dp)
+                                                .border(1.dp, Color(0xFFFFB45E).copy(alpha = 0.55f), CircleShape),
+                                            shape = CircleShape,
+                                            color = Color(0xFF2A1608)
+                                        ) {
+                                            Image(
+                                                painter = painterResource(R.mipmap.ic_launcher),
+                                                contentDescription = "Pitchcraft profile",
+                                                modifier = Modifier.padding(5.dp)
+                                            )
+                                        }
+                                        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                            Text(
+                                                text = "Anshdeep",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White
+                                            )
+                                            Text(
+                                                text = pitchcraftGreeting(),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = Color.White.copy(alpha = 0.68f)
+                                            )
+                                        }
+                                    }
                                 } else {
                                     val titleText = when (currentRoute) {
                                         "albums" -> "Albums"
@@ -614,7 +657,7 @@ fun MainAppLayout(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     modifier = Modifier.padding(end = 6.dp)
                                 ) {
-                                    if (currentRoute != "photos" && currentRoute != "search") {
+                                    if (currentRoute != "search") {
                                         ExpressiveFilledIconButton(
                                             onClick = { nestedNavController.navigate("search") },
                                             modifier = Modifier.size(40.dp),
@@ -732,6 +775,17 @@ fun MainAppLayout(
                                         }
                                     }
                                 }
+                            }
+                            if (currentRoute == "photos") {
+                                MorphingVariableTabRow(
+                                    tabs = listOf("All Photos", "Camera"),
+                                    selectedTabIndex = if (selectedFilter == 1) 1 else 0,
+                                    onTabSelected = { index -> viewModel.setFilterIndex(if (index == 1) 1 else 0) },
+                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                                    fontSize = 13.sp,
+                                    lineHeight = 18.sp
+                                )
+                            }
                             }
                         }
                     }

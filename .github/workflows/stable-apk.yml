@@ -70,20 +70,20 @@ jobs:
         run: |
           chmod +x ./gradlew
           ./gradlew :app:testDebugUnitTest :app:assembleDebug -PpitchcraftUpgradeSigning=true --stacktrace
-          cp app/build/outputs/apk/debug/app-debug.apk Pitchcraft-1.0.2-universal-stable.apk
+          cp app/build/outputs/apk/debug/app-debug.apk Pitchcraft-1.0.3-universal-stable.apk
       - name: Verify package, version, signer, ABIs and 16 KiB compatibility
         env:
           EXPECTED_CERT: ${{ secrets.PITCHCRAFT_CERT_SHA256 }}
         run: |
           set -euo pipefail
-          APK="Pitchcraft-1.0.2-universal-stable.apk"
+          APK="Pitchcraft-1.0.3-universal-stable.apk"
           SDKROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           TOOLS="$SDKROOT/build-tools/36.0.0"
           "$TOOLS/apksigner" verify --verbose "$APK"
           META="$("$TOOLS/aapt" dump badging "$APK" | head -n 1)"
           echo "$META" | grep -q "name='com.anshdeep.pitchcraft.debug'"
-          echo "$META" | grep -q "versionCode='3'"
-          echo "$META" | grep -q "versionName='1.0.2'"
+          echo "$META" | grep -q "versionCode='4'"
+          echo "$META" | grep -q "versionName='1.0.3'"
           "$TOOLS/aapt" dump badging "$APK" | grep '^native-code:' | grep -q "arm64-v8a.*armeabi-v7a.*x86_64"
           "$TOOLS/zipalign" -c -P 16 -v 4 "$APK"
           python3 .github/scripts/check-native-16kb.py "$APK"
@@ -93,9 +93,9 @@ jobs:
           sha256sum "$APK" | tee Pitchcraft-SHA256.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: Pitchcraft-1.0.2-stable-signed
+          name: Pitchcraft-1.0.3-stable-signed
           path: |
-            Pitchcraft-1.0.2-universal-stable.apk
+            Pitchcraft-1.0.3-universal-stable.apk
             Pitchcraft-SHA256.txt
           if-no-files-found: error
           retention-days: 90
@@ -104,9 +104,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          APK="Pitchcraft-1.0.2-universal-stable.apk"
-          gh release view v1.0.2 >/dev/null 2>&1 || gh release create v1.0.2 --title "Pitchcraft 1.0.2" --notes "Stable universal APK for Android 8 through Android 16. Includes 16 KiB page-size support."
-          gh release upload v1.0.2 "$APK" Pitchcraft-SHA256.txt --clobber
+          APK="Pitchcraft-1.0.3-universal-stable.apk"
+          gh release view v1.0.3 >/dev/null 2>&1 || gh release create v1.0.3 --title "Pitchcraft 1.0.3" --notes "Premium UI redesign with stable universal Android 8-16 support and 16 KiB page-size compatibility."
+          gh release upload v1.0.3 "$APK" Pitchcraft-SHA256.txt --clobber
       - name: Remove temporary signing material
         if: always()
         run: rm -f key.properties "$RUNNER_TEMP/pitchcraft-stable.jks"
