@@ -63,6 +63,7 @@ class SettingsRepository private constructor(private val context: Context) {
         val LIBRARY_SCOPE_MODE = stringPreferencesKey("library_scope_mode")
         val PROCESSING_PERFORMANCE = stringPreferencesKey("processing_performance")
         val FACE_INDEXING_ENABLED = booleanPreferencesKey("face_indexing_enabled")
+        val AUTO_ML_PROCESSING = booleanPreferencesKey("auto_ml_processing")
         val HDR_DISPLAY_ENABLED = booleanPreferencesKey("hdr_display_enabled")
         val PINNED_FOLDERS = stringPreferencesKey("pinned_folders")
         val PINNED_FOLDERS_ORDER = stringPreferencesKey("pinned_folders_order")
@@ -425,7 +426,7 @@ class SettingsRepository private constructor(private val context: Context) {
 
     val ocrIndexingEnabledFlow: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[OCR_INDEXING_ENABLED] ?: true
+            preferences[OCR_INDEXING_ENABLED] ?: false
         }
 
     suspend fun updateOcrIndexingEnabled(enabled: Boolean) {
@@ -531,8 +532,8 @@ class SettingsRepository private constructor(private val context: Context) {
     val processingPerformanceFlow: Flow<ProcessingPerformance> = context.dataStore.data
         .map { preferences ->
             runCatching {
-                ProcessingPerformance.valueOf(preferences[PROCESSING_PERFORMANCE] ?: ProcessingPerformance.MAX.name)
-            }.getOrDefault(ProcessingPerformance.MAX)
+                ProcessingPerformance.valueOf(preferences[PROCESSING_PERFORMANCE] ?: ProcessingPerformance.BALANCED.name)
+            }.getOrDefault(ProcessingPerformance.BALANCED)
         }
 
     suspend fun updateProcessingPerformance(mode: ProcessingPerformance) {
@@ -543,6 +544,15 @@ class SettingsRepository private constructor(private val context: Context) {
 
     val faceIndexingEnabledFlow: Flow<Boolean> = context.dataStore.data
         .map { preferences -> preferences[FACE_INDEXING_ENABLED] ?: true }
+
+    val autoMlProcessingFlow: Flow<Boolean> = context.dataStore.data
+        .map { preferences -> preferences[AUTO_ML_PROCESSING] ?: false }
+
+    suspend fun updateAutoMlProcessing(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[AUTO_ML_PROCESSING] = enabled
+        }
+    }
 
     suspend fun updateFaceIndexingEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
