@@ -59,7 +59,7 @@ fun PersonStoryScreen(
     var position by remember(clusterId) { mutableIntStateOf(0) }
     var playing by remember(clusterId) { mutableStateOf(true) }
     var shuffle by remember(clusterId) { mutableStateOf(false) }
-    var repeat by remember(clusterId) { mutableStateOf(false) }
+    var loopEnabled by remember(clusterId) { mutableStateOf(false) }
     var intervalSeconds by remember(clusterId) { mutableIntStateOf(4) }
 
     // An order of references into the original media list, not duplicate media.
@@ -72,12 +72,12 @@ fun PersonStoryScreen(
         viewModel.loadPersonMedia(clusterId)
     }
 
-    LaunchedEffect(playing, safePosition, order.size, intervalSeconds, repeat, shuffle) {
+    LaunchedEffect(playing, safePosition, order.size, intervalSeconds, loopEnabled, shuffle) {
         if (playing && order.isNotEmpty()) {
             delay(intervalSeconds * 1000L)
             if (safePosition < order.lastIndex) {
                 position = safePosition + 1
-            } else if (repeat && order.size > 1) {
+            } else if (loopEnabled && order.size > 1) {
                 position = 0
             } else {
                 playing = false
@@ -172,7 +172,7 @@ fun PersonStoryScreen(
                     if (safePosition < order.lastIndex) {
                         position = safePosition + 1
                         playing = true
-                    } else if (repeat) {
+                    } else if (loopEnabled) {
                         position = 0
                         playing = true
                     } else {
@@ -301,8 +301,8 @@ fun PersonStoryScreen(
                     val next = steps.indexOf(intervalSeconds).let { (it + 1) % steps.size }
                     intervalSeconds = steps[next]
                 }
-                StoryActionChip("Repeat", repeat) {
-                    repeat = !repeat
+                StoryActionChip("Repeat", loopEnabled) {
+                    loopEnabled = !loopEnabled
                 }
             }
         }
