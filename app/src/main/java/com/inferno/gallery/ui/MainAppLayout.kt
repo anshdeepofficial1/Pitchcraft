@@ -351,12 +351,10 @@ fun MainAppLayout(
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
                     shadowElevation = 6.dp
                 ) {
-                    Text(
-                        "P",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 18.dp)
+                    Image(
+                        painter = painterResource(R.drawable.pitchcraft_mark),
+                        contentDescription = "Pitchcraft",
+                        modifier = Modifier.size(73.dp).padding(8.dp)
                     )
                 }
                 Spacer(Modifier.height(14.dp))
@@ -778,8 +776,8 @@ fun MainAppLayout(
                                             )
                                         ) {
                                             Icon(
-                                                imageVector = ImageVector.vectorResource(R.drawable.ic_ms_more_vert),
-                                                contentDescription = "More options",
+                                                imageVector = ImageVector.vectorResource(R.drawable.ic_reference_bell),
+                                                contentDescription = "Gallery activity and options",
                                                 modifier = Modifier.size(IconSizeTokens.L)
                                             )
                                         }
@@ -795,6 +793,17 @@ fun MainAppLayout(
                                             modifier = Modifier.widthIn(min = 180.dp)
                                         ) {
                                             if (overflowState == "main") {
+                                                DropdownMenuItem(
+                                                    text = { Text("Gallery activity") },
+                                                    leadingIcon = { Icon(ImageVector.vectorResource(R.drawable.ic_reference_bell), contentDescription = null) },
+                                                    onClick = {
+                                                        showOverflowMenu = false
+                                                        overflowState = "main"
+                                                        nestedNavController.navigate("people_processing") {
+                                                            launchSingleTop = true
+                                                        }
+                                                    }
+                                                )
                                                 DropdownMenuItem(
                                                     text = { Text("Settings") },
                                                     leadingIcon = { Icon(ImageVector.vectorResource(R.drawable.ic_ms_settings), contentDescription = null) },
@@ -869,14 +878,13 @@ fun MainAppLayout(
             }
         },
         bottomBar = {
-            val isHiddenAlbum = currentRoute?.startsWith("album/") == true
+            val isHiddenAlbum = currentRoute?.startsWith("album/") == true && albumNameArg != "Favorites"
             val isDockVisible = currentRoute != "settings" &&
                 currentRoute != "duplicate_cleaner" &&
                 currentRoute != "photo_map" &&
                 currentRoute != "all_albums" &&
                 currentRoute != "story_viewer" &&
                 currentRoute != "places_list" &&
-                currentRoute != "all_people" &&
                 currentRoute != "people_processing" &&
                 !isHiddenAlbum && !isSelectionMode
             AnimatedVisibility(
@@ -892,7 +900,7 @@ fun MainAppLayout(
                     contentAlignment = Alignment.BottomCenter
                 ) {
                     FloatingNavigationPill(
-                        currentRoute = currentRoute,
+                        currentRoute = if (albumNameArg == "Favorites") "album/Favorites" else currentRoute,
                         onNavigateToPhotos = {
                             nestedNavController.navigate("photos") {
                                 popUpTo("photos") { saveState = true }
