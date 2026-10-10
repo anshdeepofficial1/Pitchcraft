@@ -1,0 +1,112 @@
+name: Stable signed Pitchcraft APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: Publish/update the GitHub release used by the in-app updater
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: stable-pitchcraft-apk
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - name: Install Android SDK 36
+        run: |
+          SDKROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SDKMANAGER="$(find "$SDKROOT/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)"
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
+      - name: Restore permanent signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.PITCHCRAFT_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.PITCHCRAFT_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.PITCHCRAFT_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.PITCHCRAFT_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for key in KEYSTORE_BASE64 STORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            test -n "${!key}" || { echo "::error::Missing permanent signing secret: $key"; exit 1; }
+          done
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/pitchcraft-stable.jks"
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          def prop(value):
+              return value.replace('\\', '\\\\').replace('\n', '\\n').replace('\r', '\\r').replace('=', '\\=').replace(':', '\\:')
+          values = {
+              'storeFile': os.environ['RUNNER_TEMP'] + '/pitchcraft-stable.jks',
+              'storePassword': os.environ['STORE_PASSWORD'],
+              'keyAlias': os.environ['KEY_ALIAS'],
+              'keyPassword': os.environ['KEY_PASSWORD'],
+          }
+          Path('key.properties').write_text(''.join(f'{k}={prop(v)}\n' for k, v in values.items()))
+          PY
+      - name: Bundle verified offline face model
+        run: |
+          mkdir -p app/src/main/assets/models
+          curl -fL --retry 3 --connect-timeout 20 \
+            https://models.ente.com/mobilefacenet_portable_static_b1.onnx \
+            -o app/src/main/assets/models/mobilefacenet_portable_static_b1.onnx
+          echo "0763fc33f54e138476194da95987e133b3e976075a6b1d3e1b2caedb251b1a36  app/src/main/assets/models/mobilefacenet_portable_static_b1.onnx" | sha256sum -c -
+      - name: Build universal APK with the permanent certificate
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:testDebugUnitTest :app:assembleDebug -PpitchcraftUpgradeSigning=true --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk Pitchcraft-${{ github.run_number }}-stable.apk
+      - name: Verify package, version, signer, ABIs and 16 KiB compatibility
+        env:
+          EXPECTED_CERT: ${{ secrets.PITCHCRAFT_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          APK="$(find . -maxdepth 1 -name 'Pitchcraft-*-stable.apk' -print -quit)"
+          SDKROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          TOOLS="$SDKROOT/build-tools/36.0.0"
+          "$TOOLS/apksigner" verify --verbose "$APK"
+          META="$("$TOOLS/aapt" dump badging "$APK" | head -n 1)"
+          echo "$META" | grep -q "name='com.anshdeep.pitchcraft.debug'"
+          echo "$META" | grep -q "versionCode='3'"
+          echo "$META" | grep -q "versionName='1.0.2'"
+          "$TOOLS/aapt" dump badging "$APK" | grep '^native-code:' | grep -q "arm64-v8a.*armeabi-v7a.*x86_64"
+          "$TOOLS/zipalign" -c -P 16 -v 4 "$APK"
+          python3 .github/scripts/check-native-16kb.py "$APK"
+          ACTUAL="$("$TOOLS/apksigner" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1 | tr '[:upper:]' '[:lower:]')"
+          EXPECTED="$(printf '%s' "$EXPECTED_CERT" | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          test -n "$EXPECTED" && test "$ACTUAL" = "$EXPECTED"
+          sha256sum "$APK" | tee Pitchcraft-SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Pitchcraft-1.0.2-stable-signed
+          path: |
+            Pitchcraft-*-stable.apk
+            Pitchcraft-SHA256.txt
+          if-no-files-found: error
+          retention-days: 90
+      - name: Publish APK for the in-app updater
+        if: ${{ inputs.publish_release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APK="$(find . -maxdepth 1 -name 'Pitchcraft-*-stable.apk' -print -quit)"
+          gh release view v1.0.2 >/dev/null 2>&1 || gh release create v1.0.2 --title "Pitchcraft 1.0.2" --notes "Stable universal APK for Android 8 through Android 16. Includes 16 KiB page-size support."
+          gh release upload v1.0.2 "$APK#Pitchcraft-1.0.2-universal-stable.apk" Pitchcraft-SHA256.txt --clobber
+      - name: Remove temporary signing material
+        if: always()
+        run: rm -f key.properties "$RUNNER_TEMP/pitchcraft-stable.jks"
