@@ -13,11 +13,11 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.inferno.gallery"
+        applicationId = "com.anshdeep.pitchcraft"
         minSdk = 31
         targetSdk = 37
-        versionCode = 4
-        versionName = "1.0.3 (beta)"
+        versionCode = 1
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
@@ -82,7 +82,7 @@ androidComponents {
     onVariants { variant ->
         variant.outputs.forEach { output ->
             val abi = output.filters.find { it.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI }?.identifier ?: "universal"
-            output.outputFileName.set("PhotonGallery-$abi.apk")
+            output.outputFileName.set("Pitchcraft-$abi.apk")
         }
     }
 }
