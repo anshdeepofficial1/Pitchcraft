@@ -1,0 +1,68 @@
+name: Diagnose 1.0.1 to 1.0.2 APK compatibility
+
+on:
+  push:
+    paths:
+      - .github/workflows/signing-diagnostic.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Download original 1.0.1 GitHub APK (run 67)
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 38034218829
+          github-token: ${{ github.token }}
+          name: Pitchcraft-debug-apk
+          path: old
+      - name: Download latest successful 1.0.2 test APK
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 38042317044
+          github-token: ${{ github.token }}
+          name: Pitchcraft-TEST-ONLY-not-an-update-APK
+          path: new
+      - name: Verify APKs and compare signing certificates
+        shell: bash
+        run: |
+          set -euo pipefail
+          OLD="$(find old -name '*.apk' -type f | head -n 1)"
+          NEW="$(find new -name '*.apk' -type f | head -n 1)"
+          test -n "$OLD" && test -n "$NEW"
+          SDKROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SIGNER="$(find "$SDKROOT/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          AAPT="$(find "$SDKROOT/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          test -x "$SIGNER" && test -x "$AAPT"
+          "$SIGNER" verify "$OLD"
+          "$SIGNER" verify "$NEW"
+          old_info="$("$AAPT" dump badging "$OLD" | head -1)"
+          new_info="$("$AAPT" dump badging "$NEW" | head -1)"
+          echo "1.0.1: $old_info"
+          echo "1.0.2: $new_info"
+          old_cert="$("$SIGNER" verify --print-certs "$OLD" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
+          new_cert="$("$SIGNER" verify --print-certs "$NEW" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
+          test -n "$old_cert" && test -n "$new_cert"
+          {
+            echo "## Existing-build compatibility diagnostic"
+            echo ""
+            echo "- Original 1.0.1 (GitHub run #67): \`$old_info\`"
+            echo "- Latest 1.0.2 (GitHub run #143): \`$new_info\`"
+            echo "- Original signing SHA-256: \`$old_cert\`"
+            echo "- New signing SHA-256: \`$new_cert\`"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$old_cert" == "$new_cert" ]]; then
+            echo "## Matching build certificates" >> "$GITHUB_STEP_SUMMARY"
+            echo "This is not proof of the certificate on the user's installed app. Verify that separately." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::These two GitHub debug builds use different signing certificates. A normal in-place update is impossible between them."
+            echo "## DIFFERENT signing certificates" >> "$GITHUB_STEP_SUMMARY"
+            echo "A normal in-place update from run #67 to run #143 is impossible. Do NOT uninstall the old app or clear data. Obtain the original private signing key or use an independently verified local data migration." >> "$GITHUB_STEP_SUMMARY"
+          fi
