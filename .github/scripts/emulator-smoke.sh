@@ -41,6 +41,9 @@ adb shell am start -W -n "$PACKAGE/$ACTIVITY" || true
 
 sleep 15
 
+API_LEVEL="$(adb shell getprop ro.build.version.sdk | tr -d '\r')"
+adb exec-out screencap -p > "pitchcraft-api-${API_LEVEL}.png"
+
 PID="$(adb shell pidof "$PACKAGE" 2>/dev/null | tr -d '\r' || true)"
 cleanup
 trap - EXIT
