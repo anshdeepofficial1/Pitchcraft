@@ -44,6 +44,7 @@ import com.inferno.gallery.data.db.DatabaseProvider
 import com.inferno.gallery.ui.NavigationGraph
 import com.inferno.gallery.ui.SettingsViewModel
 import com.inferno.gallery.ui.ThemeMode
+import com.inferno.gallery.ui.UpdatePromptHost
 import com.inferno.gallery.ui.theme.PhotonGalleryTheme
 import com.inferno.gallery.ui.theme.contrastPresetToDouble
 import com.materialkolor.PaletteStyle
@@ -290,10 +291,13 @@ class MainActivity : FragmentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.surfaceContainerLowest
                 ) {
-                    NavigationGraph(
-                        isLoading = isLoading,
-                        settingsViewModel = settingsViewModel
-                    )
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        NavigationGraph(
+                            isLoading = isLoading,
+                            settingsViewModel = settingsViewModel
+                        )
+                        UpdatePromptHost()
+                    }
                 }
             }
         }
