@@ -1,0 +1,80 @@
+name: Compare original 1.0.1 vs 1.0.2 APK install compatibility
+
+on:
+  push:
+    paths:
+      - .github/workflows/apk-forensics.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  forensics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download the original 1.0.1 universal and splits
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 38034218829
+          github-token: ${{ github.token }}
+          name: Pitchcraft-debug-apk
+          path: old
+      - name: Download 1.0.2 universal (before native compatibility fix)
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 38044888992
+          github-token: ${{ github.token }}
+          name: Pitchcraft-TEST-ONLY-not-an-update-APK
+          path: new
+      - name: Analyze actual original and new APK archives
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq binutils >/dev/null
+          export SDKROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          ZIPALIGN="$(find "$SDKROOT/build-tools" -type f -name zipalign | sort -V | tail -n 1)"
+          AAPT="$(find "$SDKROOT/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          SIGNER="$(find "$SDKROOT/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          OLD="$(find old -name '*universal*.apk' | head -n 1)"
+          NEW="$(find new -name '*.apk' | head -n 1)"
+          test -s "$OLD" && test -s "$NEW"
+          echo "Old universal APK: $OLD"
+          echo "New APK: $NEW"
+          for FILE in "$OLD" "$NEW"; do
+            echo "============== $FILE =============="
+            sha256sum "$FILE"
+            "$AAPT" dump badging "$FILE" | grep -E '^(package:|sdkVersion:|targetSdkVersion:|native-code:)'
+            "$SIGNER" verify --verbose --print-certs "$FILE"
+            if "$ZIPALIGN" -c -P 16 -v 4 "$FILE" >/tmp/zip-output.txt 2>&1; then
+              echo "ZIPALIGN 16KB: PASS"
+            else
+              echo "ZIPALIGN 16KB: FAIL"
+              tail -n 20 /tmp/zip-output.txt
+            fi
+            if python3 .github/scripts/check-native-16kb.py "$FILE" > /tmp/native-output.txt 2>&1; then
+              echo "ELF 16KB: PASS"
+              cat /tmp/native-output.txt
+            else
+              echo "ELF 16KB: FAIL"
+              cat /tmp/native-output.txt
+            fi
+          done
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          import hashlib
+          old = next(Path('old').rglob('*universal*.apk'))
+          new = next(Path('new').rglob('*.apk'))
+          with ZipFile(old) as o, ZipFile(new) as n:
+              def libs(z):
+                  return {x.filename: hashlib.sha256(z.read(x)).hexdigest() for x in z.infolist() if x.filename.endswith('.so')}
+              orig, updated=libs(o),libs(n)
+              print('OLD .so files:',len(orig),'NEW .so files:',len(updated))
+              for k in sorted(orig.keys()|updated.keys()):
+                  if orig.get(k)!=updated.get(k):
+                      print('NATIVE DIFFERENCE:',k, 'ADDED' if k not in orig else 'REMOVED' if k not in updated else 'CHANGED')
+          PY
