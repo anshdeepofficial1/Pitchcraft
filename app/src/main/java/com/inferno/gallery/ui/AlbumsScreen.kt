@@ -213,7 +213,10 @@ fun AlbumsScreen(
                 items(
                     items = visiblePinned,
                     key = { "pinned_${it.bucketName}" },
-                    span = { GridItemSpan(6) }
+                    span = { bucket ->
+                        GridItemSpan(if (visiblePinned.size % 2 == 1 &&
+                            bucket.bucketName == visiblePinned.last().bucketName) 12 else 6)
+                    }
                 ) { bucket ->
                     val displayBucketName = when (bucket.bucketName) {
                         "Screenrecordings", "Screenrecords", "ScreenRecord" -> "Screen recordings"
@@ -228,6 +231,8 @@ fun AlbumsScreen(
                             animatedVisibilityScope = animatedVisibilityScope,
                             bucket = bucket.copy(bucketName = displayBucketName),
                             showAlbumSize = showAlbumSize,
+                            wide = visiblePinned.size % 2 == 1 &&
+                                bucket.bucketName == visiblePinned.last().bucketName,
                             onClick = { onAlbumClick(bucket.bucketName) },
                             onLongPress = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -357,7 +362,10 @@ fun AlbumsScreen(
                 items(
                     items = unpinnedAlbums,
                     key = { "folder_${it.bucketName}" },
-                    span = { GridItemSpan(6) }
+                    span = { bucket ->
+                        GridItemSpan(if (unpinnedAlbums.size % 2 == 1 &&
+                            bucket.bucketName == unpinnedAlbums.last().bucketName) 12 else 6)
+                    }
                 ) { bucket ->
                     Box(modifier = Modifier.fillMaxWidth()) {
                         var showPinMenu by remember { mutableStateOf(false) }
@@ -366,6 +374,8 @@ fun AlbumsScreen(
                             animatedVisibilityScope = animatedVisibilityScope,
                             bucket = bucket,
                             showAlbumSize = showAlbumSize,
+                            wide = unpinnedAlbums.size % 2 == 1 &&
+                                bucket.bucketName == unpinnedAlbums.last().bucketName,
                             onClick = { onAlbumClick(bucket.bucketName) },
                             onLongPress = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -978,6 +988,7 @@ fun AlbumCard(
     bucket: AlbumBucket,
     modifier: Modifier = Modifier,
     showAlbumSize: Boolean = false,
+    wide: Boolean = false,
     onClick: () -> Unit = {},
     onLongPress: (() -> Unit)? = null
 ) {
@@ -1010,7 +1021,7 @@ fun AlbumCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(0.83f)
+            .aspectRatio(if (wide) 1.7f else 0.83f)
             .then(sharedBoundsModifier)
             .pressScale(pressedScale = 0.97f)
             .clip(cardShape)
