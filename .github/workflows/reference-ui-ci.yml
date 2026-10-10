@@ -87,3 +87,47 @@ jobs:
           name: pitchcraft-reference-ui-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
+
+  android16-smoke:
+    name: Android 16 UI + permission check
+    needs: build-and-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve exactly the APK tested on Android 15
+        uses: actions/download-artifact@v4
+        with:
+          name: pitchcraft-reference-ui-debug
+          path: app/build/outputs/apk/debug
+      - name: Enable Android emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Fresh install and gallery UX smoke on Android 16
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          emulator-boot-timeout: 900
+          disable-animations: true
+          script: bash .github/scripts/emulator-smoke.sh && bash .github/scripts/reference-ui-gallery-smoke.sh
+      - name: Archive Android 16 gallery screenshots and log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pitchcraft-reference-ui-android16-preview
+          path: |
+            pitchcraft-api-*.png
+            pitchcraft-logcat.txt
+            pitchcraft-gallery-zero-images.png
+            pitchcraft-gallery-with-test-images.png
+            pitchcraft-albums-reference.png
+            pitchcraft-people-scanning-reference.png
+            pitchcraft-search-reference.png
+            pitchcraft-people-reference.png
+          if-no-files-found: ignore
+          retention-days: 7
