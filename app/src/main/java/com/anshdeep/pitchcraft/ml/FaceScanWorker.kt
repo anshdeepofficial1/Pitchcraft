@@ -27,30 +27,43 @@ class FaceScanWorker(
         setForeground(notification(0, images.size, "Preparing local face index"))
 
         return try {
-            FaceEngine(applicationContext).use { engine ->
-                images.forEachIndexed { index, item ->
-                    if (isStopped) return@use
-                    if (!db.isScanned(item.id)) {
+            FaceEngine(applicationContext).use { faceEngine ->
+                VisualIndexEngine(applicationContext).use { visualEngine ->
+                    images.forEachIndexed { index, item ->
+                        if (isStopped) return@use
                         db.setMeta("scan_current", item.name)
-                        try {
-                            val faces = engine.analyze(item)
-                            faces.forEach { face ->
-                                db.addFace(
-                                    mediaId = item.id,
-                                    uri = item.uri.toString(),
-                                    thumbPath = face.thumbnailPath,
-                                    embedding = face.embedding,
-                                    score = face.score
-                                )
+
+                        if (!db.isScanned(item.id)) {
+                            try {
+                                val faces = faceEngine.analyze(item)
+                                faces.forEach { face ->
+                                    db.addFace(
+                                        mediaId = item.id,
+                                        uri = item.uri.toString(),
+                                        thumbPath = face.thumbnailPath,
+                                        embedding = face.embedding,
+                                        score = face.score
+                                    )
+                                }
+                                db.markScanned(item.id)
+                            } catch (t: Throwable) {
+                                db.markScanned(item.id, t.message ?: t.javaClass.simpleName)
                             }
-                            db.markScanned(item.id)
-                        } catch (t: Throwable) {
-                            db.markScanned(item.id, t.message ?: t.javaClass.simpleName)
                         }
-                    }
-                    if (index % 5 == 0 || index == images.lastIndex) {
-                        setForeground(notification(index + 1, images.size, item.name))
-                        setProgress(androidx.work.workDataOf("done" to (index + 1), "total" to images.size))
+
+                        if (!db.isVisualIndexed(item.id)) {
+                            try {
+                                val visual = visualEngine.analyze(item.uri)
+                                db.saveVisualIndex(item.id, visual.text, visual.labels)
+                            } catch (_: Throwable) {
+                                // OCR/labels are supplemental; face indexing keeps going.
+                            }
+                        }
+
+                        if (index % 5 == 0 || index == images.lastIndex) {
+                            setForeground(notification(index + 1, images.size, item.name))
+                            setProgress(androidx.work.workDataOf("done" to (index + 1), "total" to images.size))
+                        }
                     }
                 }
             }
