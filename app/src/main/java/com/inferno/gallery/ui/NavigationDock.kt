@@ -78,7 +78,7 @@ fun FloatingNavigationPill(
 ) {
     Box(
         modifier = modifier
-            .fillMaxWidth(0.88f)
+            .fillMaxWidth(0.82f)
             .height(58.dp)
             .clip(ShapeFull)
             .background(
@@ -112,7 +112,7 @@ fun FloatingNavigationPill(
             )
             Box(
                 modifier = Modifier
-                    .size(45.dp)
+                    .size(42.dp)
                     .clip(androidx.compose.foundation.shape.CircleShape)
                     .background(Color(0xFFFFF7EC))
                     .clickable(onClick = onNavigateToPhotos),
