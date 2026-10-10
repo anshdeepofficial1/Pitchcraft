@@ -67,7 +67,10 @@ jobs:
           "$SDKROOT/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK"
           "$SDKROOT/build-tools/36.0.0/aapt" dump badging "$APK" | grep -E "^(package:|sdkVersion:|targetSdkVersion:|native-code:)"
           "$SDKROOT/build-tools/36.0.0/aapt" dump badging "$APK" | grep -q "sdkVersion:'26'"
-          "$SDKROOT/build-tools/36.0.0/aapt" dump badging "$APK" | grep -q "native-code: 'armeabi-v7a' 'arm64-v8a' 'x86_64'"
+          NATIVE="$("$SDKROOT/build-tools/36.0.0/aapt" dump badging "$APK" | grep '^native-code:')"
+          for ABI in arm64-v8a armeabi-v7a x86_64; do
+            echo "$NATIVE" | grep -q "'$ABI'" || { echo "::error::Missing native ABI: $ABI"; exit 1; }
+          done
 
       - name: Enable KVM
         run: |
