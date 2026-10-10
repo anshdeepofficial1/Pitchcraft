@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.map
 
 enum class DockStyle { PILL, FULL_WIDTH }
 enum class TimelineLayoutMode { STANDARD_GRID, EDITORIAL_MOSAIC, STAGGERED_MASONRY }
+enum class LibraryScopeMode { ALL, SELECTED }
+enum class ProcessingPerformance { BALANCED, FAST, MAX }
 
 val Context.dataStore by preferencesDataStore(name = "user_settings")
 
@@ -58,6 +60,9 @@ class SettingsRepository private constructor(private val context: Context) {
         
 
         val EXCLUDED_FOLDERS = stringPreferencesKey("excluded_folders")
+        val LIBRARY_SCOPE_MODE = stringPreferencesKey("library_scope_mode")
+        val PROCESSING_PERFORMANCE = stringPreferencesKey("processing_performance")
+        val FACE_INDEXING_ENABLED = booleanPreferencesKey("face_indexing_enabled")
         val HDR_DISPLAY_ENABLED = booleanPreferencesKey("hdr_display_enabled")
         val PINNED_FOLDERS = stringPreferencesKey("pinned_folders")
         val PINNED_FOLDERS_ORDER = stringPreferencesKey("pinned_folders_order")
@@ -504,6 +509,44 @@ class SettingsRepository private constructor(private val context: Context) {
     suspend fun updateExcludedFolders(folders: Set<String>) {
         context.dataStore.edit { preferences ->
             preferences[EXCLUDED_FOLDERS] = folders.joinToString(",")
+        }
+    }
+
+    val libraryScopeModeFlow: Flow<LibraryScopeMode> = context.dataStore.data
+        .map { preferences ->
+            runCatching {
+                LibraryScopeMode.valueOf(preferences[LIBRARY_SCOPE_MODE] ?: LibraryScopeMode.ALL.name)
+            }.getOrDefault(LibraryScopeMode.ALL)
+        }
+
+    suspend fun updateLibraryScopeMode(mode: LibraryScopeMode) {
+        context.dataStore.edit { preferences ->
+            preferences[LIBRARY_SCOPE_MODE] = mode.name
+            if (mode == LibraryScopeMode.ALL) {
+                preferences[EXCLUDED_FOLDERS] = ""
+            }
+        }
+    }
+
+    val processingPerformanceFlow: Flow<ProcessingPerformance> = context.dataStore.data
+        .map { preferences ->
+            runCatching {
+                ProcessingPerformance.valueOf(preferences[PROCESSING_PERFORMANCE] ?: ProcessingPerformance.MAX.name)
+            }.getOrDefault(ProcessingPerformance.MAX)
+        }
+
+    suspend fun updateProcessingPerformance(mode: ProcessingPerformance) {
+        context.dataStore.edit { preferences ->
+            preferences[PROCESSING_PERFORMANCE] = mode.name
+        }
+    }
+
+    val faceIndexingEnabledFlow: Flow<Boolean> = context.dataStore.data
+        .map { preferences -> preferences[FACE_INDEXING_ENABLED] ?: true }
+
+    suspend fun updateFaceIndexingEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[FACE_INDEXING_ENABLED] = enabled
         }
     }
 
