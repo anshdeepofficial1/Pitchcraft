@@ -383,6 +383,44 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    val libraryScopeMode: StateFlow<com.inferno.gallery.data.LibraryScopeMode> =
+        settingsRepository.libraryScopeModeFlow.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = com.inferno.gallery.data.LibraryScopeMode.ALL
+        )
+
+    fun setLibraryScopeMode(mode: com.inferno.gallery.data.LibraryScopeMode) {
+        viewModelScope.launch {
+            settingsRepository.updateLibraryScopeMode(mode)
+        }
+    }
+
+    fun setFolderIncluded(bucketName: String, included: Boolean) {
+        viewModelScope.launch {
+            if (libraryScopeMode.value != com.inferno.gallery.data.LibraryScopeMode.SELECTED) {
+                settingsRepository.updateLibraryScopeMode(com.inferno.gallery.data.LibraryScopeMode.SELECTED)
+            }
+            val excluded = excludedFolders.value.toMutableSet()
+            if (included) excluded.remove(bucketName) else excluded.add(bucketName)
+            settingsRepository.updateExcludedFolders(excluded)
+        }
+    }
+
+    fun includeOnlyFolder(bucketName: String) {
+        viewModelScope.launch {
+            settingsRepository.updateLibraryScopeMode(com.inferno.gallery.data.LibraryScopeMode.SELECTED)
+            settingsRepository.updateExcludedFolders(allBucketNames.value.filter { it != bucketName }.toSet())
+        }
+    }
+
+    fun includeAllFolders() {
+        viewModelScope.launch {
+            settingsRepository.updateLibraryScopeMode(com.inferno.gallery.data.LibraryScopeMode.ALL)
+            settingsRepository.updateExcludedFolders(emptySet())
+        }
+    }
+
     // ── Private Space ──
     val vaultAuthManager = VaultAuthManager()
     private val vaultRepository = com.inferno.gallery.data.VaultRepository(application, database.vaultDao())
