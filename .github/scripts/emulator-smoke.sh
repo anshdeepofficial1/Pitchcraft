@@ -19,14 +19,18 @@ sleep 12
 PID="$(adb shell pidof "$PACKAGE" 2>/dev/null | tr -d '\r' || true)"
 if [ -z "$PID" ]; then
   echo "Pitchcraft process is not alive after launch."
-  adb logcat -d -t 3000 > pitchcraft-logcat.txt || true
+  echo "===== Pitchcraft processes ====="
+  adb shell ps -A | grep -i pitchcraft || true
+  echo "===== Top activity ====="
+  adb shell dumpsys activity top | head -n 120 || true
+  adb logcat -d -v threadtime > pitchcraft-logcat.txt || true
   echo "===== Pitchcraft crash log ====="
-  grep -n -E -B 20 -A 80 "FATAL EXCEPTION|AndroidRuntime|Process: $PACKAGE|Caused by:|Exception" pitchcraft-logcat.txt || cat pitchcraft-logcat.txt
+  grep -n -E -B 40 -A 140 "FATAL EXCEPTION|AndroidRuntime|Process: $PACKAGE|$PACKAGE|PHOTON_CRASH|PITCHCRAFT|GalleryApplication|MainActivity|Caused by:" pitchcraft-logcat.txt || cat pitchcraft-logcat.txt
   exit 1
 fi
 
 adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" || true
-adb logcat -d -t 2000 > pitchcraft-logcat.txt
+adb logcat -d -v threadtime > pitchcraft-logcat.txt
 
 if grep -E "FATAL EXCEPTION|Process: com\.anshdeep\.pitchcraft\.debug|AndroidRuntime:.*FATAL" pitchcraft-logcat.txt; then
   echo "Fatal runtime crash detected."
