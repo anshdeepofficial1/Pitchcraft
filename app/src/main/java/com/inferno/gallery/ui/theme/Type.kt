@@ -28,22 +28,7 @@ fun googleSansFlex(
     roundness: Float = 0f,
     grade: Float = 0f,
     slant: Float = 0f
-): FontFamily {
-    return FontFamily(
-        Font(
-            resId = R.font.google_sans_flex,
-            weight = FontWeight(weight),
-            variationSettings = FontVariation.Settings(
-                FontVariation.weight(weight),
-                FontVariation.width(width),
-                FontVariation.Setting("opsz", opticalSize),
-                FontVariation.Setting("ROND", roundness),
-                FontVariation.Setting("GRAD", grade),
-                FontVariation.slant(slant)
-            )
-        )
-    )
-}
+): FontFamily = FontFamily.Default
 
 // Global reference
 val GoogleSansFlexFont = googleSansFlex()
