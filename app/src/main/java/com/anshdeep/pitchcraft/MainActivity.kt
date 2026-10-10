@@ -18,6 +18,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -681,6 +682,12 @@ private fun PhotosScreen(vm: GalleryViewModel, modifier: Modifier = Modifier, on
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
+            PremiumHeader(
+                "Pitchcraft",
+                vm.media.size.toString() + " memories on this device • private by design"
+            )
+        }
+        item(span = { GridItemSpan(maxLineSpan) }) {
             MomentsStrip(vm.media.take(16), onOpen)
         }
         groups.forEach { (day, itemsForDay) ->
@@ -778,7 +785,29 @@ private fun AlbumsScreen(vm: GalleryViewModel, modifier: Modifier = Modifier, on
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
-            Text("On this device", fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 2.dp), color = Ink)
+            PremiumHeader(
+                "Albums",
+                "Your folders and collections, arranged locally without duplicating originals."
+            )
+        }
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf("Recent", "Photos", "Favourites").forEachIndexed { index, label ->
+                    Surface(
+                        color = if (index == 0) Ink else BlueSoft,
+                        contentColor = if (index == 0) Color.White else BlueDeep,
+                        shape = RoundedCornerShape(18.dp)
+                    ) {
+                        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(horizontal = 13.dp, vertical = 8.dp))
+                    }
+                }
+            }
+        }
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Text("On this device", fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp, bottom = 2.dp), color = Ink)
         }
         items(special) { entry ->
             AlbumCard(entry.first, entry.second) {
