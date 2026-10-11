@@ -44,6 +44,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -82,23 +85,45 @@ fun FloatingNavigationPill(
 ) {
     Box(
         modifier = modifier
-            .fillMaxWidth(0.82f)
-            .height(58.dp)
+            .fillMaxWidth(0.86f)
+            .height(62.dp)
+            .shadow(18.dp, ShapeFull, ambientColor = Color(0xAAAD5A1E), spotColor = Color(0xBB6A3113))
             .clip(ShapeFull)
             .background(
-                androidx.compose.ui.graphics.Brush.horizontalGradient(
+                Brush.horizontalGradient(
                     listOf(
-                        Color(0xFFCD802D).copy(alpha = 0.93f),
-                        Color(0xFFAD5816).copy(alpha = 0.96f),
-                        Color(0xFFCF7B27).copy(alpha = 0.93f)
+                        Color(0xDCA55A1C),
+                        Color(0xCE542C17),
+                        Color(0xDB9D531B)
                     )
                 )
             )
-            .border(1.dp, Color(0x66FFE0B3), ShapeFull),
+            .border(
+                width = 1.dp,
+                brush = Brush.verticalGradient(
+                    listOf(Color(0xF5FFDEAD), Color(0x66FFD2A3), Color(0x42FFF2DD))
+                ),
+                shape = ShapeFull
+            ),
         contentAlignment = Alignment.Center
     ) {
+        // The bloom is Gaussian blurred; icons and their hit targets stay crisp.
+        Box(
+            Modifier
+                .align(Alignment.CenterStart)
+                .size(115.dp)
+                .blur(26.dp)
+                .background(Color(0x55FFD09A), CircleShape)
+        )
+        Box(
+            Modifier
+                .align(Alignment.CenterEnd)
+                .size(94.dp)
+                .blur(29.dp)
+                .background(Color(0x448B2C10), CircleShape)
+        )
         Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 9.dp, vertical = 5.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 9.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
