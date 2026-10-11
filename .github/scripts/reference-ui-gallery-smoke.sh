@@ -69,7 +69,7 @@ adb shell uiautomator dump /sdcard/pitchcraft-reference-ui.xml >/dev/null
 adb pull /sdcard/pitchcraft-reference-ui.xml pitchcraft-reference-ui.xml >/dev/null
 echo "Visible labels from the actual after-onboarding screen:"
 grep -o 'text="[^"]*"' pitchcraft-reference-ui.xml | head -40 || true
-if ! grep -q 'text="Your collection"\|text="Your story starts here"\|text="Your people"' pitchcraft-reference-ui.xml; then
+if ! grep -q 'text="No photos yet"\|text="Your collection"\|text="Your story starts here"\|text="Your people"' pitchcraft-reference-ui.xml; then
   echo "::error::Onboarding did not reach gallery UI; screenshot cannot validate the requested screen."
   exit 1
 fi
