@@ -83,7 +83,7 @@ echo "Empty-media gallery launched and stayed alive"
 # This captures the photo-card layout that the empty-gallery test cannot exercise.
 python3 - <<'PY'
 import math, pathlib, struct, zlib
-for seed in range(3):
+for seed in range(8):
     width, height = 420, 550
     raw = bytearray()
     for y in range(height):
@@ -107,7 +107,7 @@ for seed in range(3):
     pathlib.Path('/tmp/pitchcraft-visual-'+str(seed)+'.png').write_bytes(png)
 PY
 adb shell mkdir -p /sdcard/Pictures/PitchcraftDesignCheck
-for n in 0 1 2; do
+for n in $(seq 0 7); do
   adb push "/tmp/pitchcraft-visual-$n.png" "/sdcard/Pictures/PitchcraftDesignCheck/reference-$n.png" >/dev/null
   adb shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
     -d "file:///sdcard/Pictures/PitchcraftDesignCheck/reference-$n.png" >/dev/null || true
