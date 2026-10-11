@@ -423,6 +423,7 @@ fun GalleryScreen(
             }
             ReferenceEmptyGallery(
                 modifier = Modifier.fillMaxSize(),
+                title = title,
                 subtitle = subtitle
             )
         }
