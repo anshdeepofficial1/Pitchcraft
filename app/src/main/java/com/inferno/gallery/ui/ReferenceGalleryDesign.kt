@@ -207,17 +207,18 @@ internal fun ReferenceGallerySurface(
         if (first != null) {
             item(key = "reference_cover", span = StaggeredGridItemSpan.FullLine) {
                 BoxWithConstraints(
-                    modifier = Modifier.fillMaxWidth().height(if (second != null) 355.dp else 270.dp)
+                    modifier = Modifier.fillMaxWidth().height(if (second != null) 322.dp else 270.dp)
                 ) {
                     ReferencePhotoCard(
                         item = first,
                         modifier = Modifier
                             .fillMaxWidth(if (second != null) 0.79f else 1f)
-                            .height(263.dp)
+                            .height(255.dp)
                             .align(Alignment.TopStart),
                         onClick = { onMediaClick(first) },
                         onLongClick = { onMediaLongClick(first) },
                         overline = "YOUR MOMENTS",
+                        captionAtTop = second != null,
                         selected = isSelectionMode && first.uri.toString() in selectedUris,
                         isFavorite = first.id in favoriteIds,
                         onToggleFavorite = { if (isSelectionMode) onMediaClick(first) else onToggleFavorite(first.id) }
@@ -226,11 +227,11 @@ internal fun ReferenceGallerySurface(
                         ReferencePhotoCard(
                             item = second,
                             modifier = Modifier
-                                .fillMaxWidth(0.81f)
-                                .height(240.dp)
+                                .fillMaxWidth(0.74f)
+                                .height(208.dp)
                                 .align(Alignment.BottomEnd)
                                 .offset(x = (-5).dp, y = (-3).dp)
-                                .rotate(-8f),
+                                .rotate(-5f),
                             onClick = { onMediaClick(second) },
                             onLongClick = { onMediaLongClick(second) },
                             overline = "MEMORIES IN FOCUS",
@@ -321,7 +322,8 @@ internal fun ReferencePhotoCard(
     isFavorite: Boolean,
     onToggleFavorite: () -> Unit,
     onClick: () -> Unit,
-    onLongClick: () -> Unit
+    onLongClick: () -> Unit,
+    captionAtTop: Boolean = false
 ) {
     val hazeState = rememberHazeState()
     Box(
@@ -354,7 +356,7 @@ internal fun ReferencePhotoCard(
         )
         Column(
             modifier = Modifier
-                .align(Alignment.BottomStart)
+                .align(if (captionAtTop) Alignment.TopStart else Alignment.BottomStart)
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 12.dp)
                 .clip(RoundedCornerShape(21.dp))
