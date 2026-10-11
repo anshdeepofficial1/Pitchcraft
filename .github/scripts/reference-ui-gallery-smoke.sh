@@ -39,7 +39,7 @@ PY
     sleep 5
     continue
   fi
-  if grep -q 'text="Your story starts here"\|text="Your collection"\|text="Your people"' pitchcraft-onboarding.xml; then
+  if grep -q 'text="No photos yet"\|text="Your story starts here"\|text="Your collection"\|text="Your people"' pitchcraft-onboarding.xml; then
     break
   fi
   COORD="$(python3 - <<'PY'
