@@ -1,4 +1,6 @@
 package com.inferno.gallery.ui
+import dev.chrisbanes.haze.rememberHazeState
+import dev.chrisbanes.haze.hazeSource
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.ButtonDefaults
 
@@ -184,6 +186,8 @@ fun MainAppLayout(
     var settingsActiveSection by remember { mutableStateOf<String?>(null) }
     val navBackStackEntry by nestedNavController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    // Shared captured backdrop across gallery surfaces and the floating glass dock.
+    val dockHazeState = rememberHazeState()
 
     LaunchedEffect(currentRoute) {
         viewModel.setTopBarCollapsed(false)
@@ -941,7 +945,8 @@ fun MainAppLayout(
                         onCentralAction = {
                             newAlbumName = ""
                             showCreateAlbumDialog = true
-                        }
+                        },
+                        hazeState = dockHazeState
                     )
                 }
             }
@@ -950,6 +955,7 @@ fun MainAppLayout(
         NavHost(
             navController = nestedNavController,
             startDestination = "photos",
+            modifier = Modifier.hazeSource(dockHazeState),
             enterTransition = { getEnterTransition(initialState.destination.route, targetState.destination.route) },
             exitTransition = { getExitTransition(initialState.destination.route, targetState.destination.route) },
             popEnterTransition = { getEnterTransition(initialState.destination.route, targetState.destination.route) },
