@@ -73,6 +73,13 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
+import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.gestures.scrollBy
@@ -191,7 +198,7 @@ fun GalleryScreen(
 ) {
     val selectedFilterIndex by viewModel.selectedFilterIndex.collectAsState()
     val savedPosition = remember(bucketName) { viewModel.getSavedGridScrollPosition(bucketName) }
-    val lazyGridState = rememberLazyGridState(
+    val lazyGridState = rememberLazyStaggeredGridState(
         initialFirstVisibleItemIndex = savedPosition.first,
         initialFirstVisibleItemScrollOffset = savedPosition.second
     )
@@ -462,16 +469,51 @@ fun formatDuration(millis: Long?): String {
 
 @Composable
 fun FastScroller(
-    lazyGridState: androidx.compose.foundation.lazy.grid.LazyGridState,
+    lazyGridState: LazyStaggeredGridState,
     totalItems: Int,
     modifier: Modifier = Modifier
 ) {
     if (totalItems < 50) return
-
-    com.inferno.gallery.ui.components.ExpressiveScrollBar(
-        gridState = lazyGridState,
+    val scope = rememberCoroutineScope()
+    // The original scrollbar only supported a regular LazyVerticalGrid.
+    // This scrubber maps touch position to items in the actual staggered feed.
+    BoxWithConstraints(
         modifier = modifier
-    )
+            .fillMaxHeight()
+            .width(26.dp)
+            .pointerInput(lazyGridState, totalItems) {
+                detectVerticalDragGestures { change, _ ->
+                    change.consume()
+                    val fraction = (change.position.y / size.height.toFloat()).coerceIn(0f, 1f)
+                    val target = (fraction * (totalItems - 1)).toInt()
+                    scope.launch { lazyGridState.scrollToItem(target) }
+                }
+            },
+        contentAlignment = Alignment.TopEnd
+    ) {
+        Box(
+            Modifier
+                .fillMaxHeight()
+                .width(2.dp)
+                .align(Alignment.CenterEnd)
+                .background(Color.White.copy(alpha = 0.13f))
+        )
+        val ratio = (lazyGridState.firstVisibleItemIndex.toFloat() /
+            totalItems.coerceAtLeast(1)).coerceIn(0f, 1f)
+        val height = (maxHeight - 44.dp).coerceAtLeast(0.dp)
+        Box(
+            Modifier
+                .offset(y = height * ratio)
+                .height(44.dp)
+                .width(5.dp)
+                .clip(androidx.compose.foundation.shape.CircleShape)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(ReferencePalette.AmberBright, ReferencePalette.Amber)
+                    )
+                )
+        )
+    }
 }
 
 
