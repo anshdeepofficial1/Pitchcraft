@@ -22,6 +22,10 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.LazyGridState
@@ -151,7 +155,7 @@ private fun ReferenceChip(title: String, selected: Boolean, onClick: () -> Unit,
 @Composable
 internal fun ReferenceGallerySurface(
     pagedMedia: LazyPagingItems<GalleryListItem>,
-    lazyGridState: LazyGridState,
+    lazyGridState: LazyStaggeredGridState,
     viewMode: ViewMode,
     gridCellsCount: Int,
     onMediaClick: (GalleryItem) -> Unit,
@@ -173,11 +177,12 @@ internal fun ReferenceGallerySurface(
         (pagedMedia[it] as? GalleryListItem.Item)?.galleryItem
     }
 
-    // Full-width editorial media cards match the supplied cinematic reference.
-    val actualColumnCount = 1
+    // Genuine two-column masonry: each lane packs independently without blank half-rows.
+    // Immersive view remains one column.
+    val actualColumnCount = if (viewMode == ViewMode.Immersive) 1 else 2
 
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(actualColumnCount),
+    LazyVerticalStaggeredGrid(
+        columns = StaggeredGridCells.Fixed(actualColumnCount),
         state = lazyGridState,
         modifier = modifier
             .fillMaxSize()
@@ -196,10 +201,11 @@ internal fun ReferenceGallerySurface(
             end = 16.dp,
             bottom = contentPadding.calculateBottomPadding() + 18.dp
         ),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        verticalItemSpacing = 13.dp,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         if (first != null) {
-            item(key = "reference_cover", span = { GridItemSpan(maxLineSpan) }) {
+            item(key = "reference_cover", span = StaggeredGridItemSpan.FullLine) {
                 BoxWithConstraints(
                     modifier = Modifier.fillMaxWidth().height(if (second != null) 355.dp else 270.dp)
                 ) {
@@ -239,7 +245,19 @@ internal fun ReferenceGallerySurface(
 
         items(
             count = (pagedMedia.itemCount - firstMediaIndices.size).coerceAtLeast(0),
-            span = { GridItemSpan(maxLineSpan) }
+            span = { index ->
+                // Timeline section headers must stretch across both masonry lanes.
+                // Regular photos remain in single lanes and pack without row gaps.
+                var mediaIndex = index
+                firstMediaIndices.forEach { heroIndex ->
+                    if (mediaIndex >= heroIndex) mediaIndex += 1
+                }
+                if (pagedMedia.peek(mediaIndex) is GalleryListItem.Header) {
+                    StaggeredGridItemSpan.FullLine
+                } else {
+                    StaggeredGridItemSpan.SingleLane
+                }
+            }
         ) { visibleIndex ->
             // Exclude the two hero records without emitting invisible grid cells.
             var mediaIndex = visibleIndex
@@ -253,7 +271,14 @@ internal fun ReferenceGallerySurface(
                         ReferencePhotoCard(
                             item = photo,
                             modifier = Modifier.fillMaxWidth().height(
-                                252.dp
+                                if (actualColumnCount == 1) 270.dp
+                                else when (mediaIndex % 5) {
+                                    0 -> 242.dp
+                                    1 -> 202.dp
+                                    2 -> 286.dp
+                                    3 -> 232.dp
+                                    else -> 264.dp
+                                }
                             ),
                             onClick = { onMediaClick(photo) },
                             onLongClick = { onMediaLongClick(photo) },
