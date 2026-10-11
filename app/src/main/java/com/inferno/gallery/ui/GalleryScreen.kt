@@ -73,6 +73,13 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
+import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.gestures.scrollBy
@@ -106,7 +113,6 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.FilterQuality
@@ -146,7 +152,6 @@ import com.inferno.gallery.ui.utils.tick
 import com.inferno.gallery.ui.utils.thud
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
@@ -191,7 +196,7 @@ fun GalleryScreen(
 ) {
     val selectedFilterIndex by viewModel.selectedFilterIndex.collectAsState()
     val savedPosition = remember(bucketName) { viewModel.getSavedGridScrollPosition(bucketName) }
-    val lazyGridState = rememberLazyGridState(
+    val lazyGridState = rememberLazyStaggeredGridState(
         initialFirstVisibleItemIndex = savedPosition.first,
         initialFirstVisibleItemScrollOffset = savedPosition.second
     )
@@ -241,6 +246,7 @@ fun GalleryScreen(
     val viewMode by viewModel.viewMode.collectAsState()
     val isSelectionMode by viewModel.isSelectionMode.collectAsState()
     val selectedUris by viewModel.selectedUris.collectAsState()
+    val favoriteIds by viewModel.favoriteIds.collectAsState()
     val gridCellsCount by viewModel.gridCellsCount.collectAsState()
     val thumbnailCornerRadius by viewModel.thumbnailCornerRadius.collectAsState()
     val cacheThumbnailsEnabled by viewModel.cacheThumbnailsEnabled.collectAsState()
@@ -351,23 +357,19 @@ fun GalleryScreen(
                     alpha = gridAlpha
                 }
         ) {
-            com.inferno.gallery.ui.components.PhotonGrid(
+            ReferenceGallerySurface(
                 pagedMedia = pagedMedia,
                 lazyGridState = lazyGridState,
+                viewMode = viewMode,
                 gridCellsCount = gridCellsCount,
-                onGridCountChange = viewModel::setGridCellsCount,
-                isSelectionMode = isSelectionMode,
-                selectedUris = selectedUris,
                 onMediaClick = onMediaClick,
                 onMediaLongClick = onMediaLongClick,
-                viewMode = viewMode,
-                thumbnailCornerRadius = thumbnailCornerRadius,
-                sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope,
-                viewModel = viewModel,
-                modifier = modifier,
+                isSelectionMode = isSelectionMode,
+                selectedUris = selectedUris,
+                favoriteIds = favoriteIds,
+                onToggleFavorite = viewModel::toggleFavorite,
                 contentPadding = contentPadding,
-                timelineLayoutMode = timelineLayoutMode
+                modifier = modifier
             )
         }
 
@@ -424,12 +426,10 @@ fun GalleryScreen(
                 null -> "No photos yet" to "Photos and videos on your device will appear here."
                 else -> "Album is empty" to "\"$bucketName\" has no photos or videos."
             }
-            PhotonEmptyState(
-                icon = emptyIcon,
-                title = title,
-                subtitle = subtitle,
+            ReferenceEmptyGallery(
                 modifier = Modifier.fillMaxSize(),
-                action = null
+                title = title,
+                subtitle = subtitle
             )
         }
 
@@ -467,16 +467,51 @@ fun formatDuration(millis: Long?): String {
 
 @Composable
 fun FastScroller(
-    lazyGridState: androidx.compose.foundation.lazy.grid.LazyGridState,
+    lazyGridState: LazyStaggeredGridState,
     totalItems: Int,
     modifier: Modifier = Modifier
 ) {
     if (totalItems < 50) return
-
-    com.inferno.gallery.ui.components.ExpressiveScrollBar(
-        gridState = lazyGridState,
+    val scope = rememberCoroutineScope()
+    // The original scrollbar only supported a regular LazyVerticalGrid.
+    // This scrubber maps touch position to items in the actual staggered feed.
+    BoxWithConstraints(
         modifier = modifier
-    )
+            .fillMaxHeight()
+            .width(26.dp)
+            .pointerInput(lazyGridState, totalItems) {
+                detectVerticalDragGestures { change, _ ->
+                    change.consume()
+                    val fraction = (change.position.y / size.height.toFloat()).coerceIn(0f, 1f)
+                    val target = (fraction * (totalItems - 1)).toInt()
+                    scope.launch { lazyGridState.scrollToItem(target) }
+                }
+            },
+        contentAlignment = Alignment.TopEnd
+    ) {
+        Box(
+            Modifier
+                .fillMaxHeight()
+                .width(2.dp)
+                .align(Alignment.CenterEnd)
+                .background(Color.White.copy(alpha = 0.13f))
+        )
+        val ratio = (lazyGridState.firstVisibleItemIndex.toFloat() /
+            totalItems.coerceAtLeast(1)).coerceIn(0f, 1f)
+        val height = (maxHeight - 44.dp).coerceAtLeast(0.dp)
+        Box(
+            Modifier
+                .offset(y = height * ratio)
+                .height(44.dp)
+                .width(5.dp)
+                .clip(androidx.compose.foundation.shape.CircleShape)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(ReferencePalette.AmberBright, ReferencePalette.Amber)
+                    )
+                )
+        )
+    }
 }
 
 

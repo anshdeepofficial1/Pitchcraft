@@ -1,4 +1,6 @@
 package com.inferno.gallery.ui
+import dev.chrisbanes.haze.rememberHazeState
+import dev.chrisbanes.haze.hazeSource
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.ButtonDefaults
 
@@ -147,10 +149,10 @@ import com.inferno.gallery.R
 import coil3.compose.AsyncImage
 
 private fun pitchcraftGreeting(): String = when (java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)) {
-    in 5..11 -> "Good morning"
-    in 12..16 -> "Good afternoon"
-    in 17..21 -> "Good evening"
-    else -> "Your memories, beautifully organized"
+    in 5..11 -> "Good Morning"
+    in 12..16 -> "Good Afternoon"
+    in 17..21 -> "Good Evening"
+    else -> "Good Night"
 }
 
 
@@ -184,6 +186,8 @@ fun MainAppLayout(
     var settingsActiveSection by remember { mutableStateOf<String?>(null) }
     val navBackStackEntry by nestedNavController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    // Shared captured backdrop across gallery surfaces and the floating glass dock.
+    val dockHazeState = rememberHazeState()
 
     LaunchedEffect(currentRoute) {
         viewModel.setTopBarCollapsed(false)
@@ -323,13 +327,9 @@ fun MainAppLayout(
         }
     }
 
-    val hasRequiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        photosGranted && videosGranted && allFilesGranted
-    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        photosGranted && allFilesGranted
-    } else {
-        photosGranted
-    }
+    // Core gallery needs read access, not special all-files management.
+    // Android's all-files grant independently suffices to read the library.
+    val hasRequiredPermissions = allFilesGranted || (photosGranted && videosGranted)
     
     if (onboardingCompleted == null) {
         Box(
@@ -351,12 +351,10 @@ fun MainAppLayout(
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
                     shadowElevation = 6.dp
                 ) {
-                    Text(
-                        "P",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 18.dp)
+                    Image(
+                        painter = painterResource(R.drawable.pitchcraft_mark),
+                        contentDescription = "Pitchcraft",
+                        modifier = Modifier.size(73.dp).padding(8.dp)
                     )
                 }
                 Spacer(Modifier.height(14.dp))
@@ -391,7 +389,7 @@ fun MainAppLayout(
                     }
                 } ?: true
 
-                if (hasRequestedMediaOnce && !photosGranted && !showRationale) {
+                if (hasRequestedMediaOnce && !photosGranted && !videosGranted && !showRationale) {
                     Toast.makeText(context, "Permissions permanently denied. Opening settings...", Toast.LENGTH_LONG).show()
                     val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                         data = Uri.fromParts("package", context.packageName, null)
@@ -663,7 +661,7 @@ fun MainAppLayout(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                if (currentRoute == "photos") {
+                                if (currentRoute == "photos" || currentRoute == "albums" || currentRoute == "search") {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(11.dp),
@@ -684,11 +682,15 @@ fun MainAppLayout(
                                             if (localUserImageUri != null) {
                                                 AsyncImage(model = localUserImageUri, contentDescription = "Local profile", modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
                                             } else {
-                                                Image(
-                                                    painter = painterResource(R.drawable.pitchcraft_logo_foreground),
-                                                    contentDescription = "Pitchcraft profile",
-                                                    modifier = Modifier.padding(3.dp)
-                                                )
+                                                // The profile circle is personal: never substitute the app logo.
+                                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                                    Text(
+                                                        localUserName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "G",
+                                                        fontSize = 19.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = ReferencePalette.Cream
+                                                    )
+                                                }
                                             }
                                         }
                                         Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
@@ -699,7 +701,11 @@ fun MainAppLayout(
                                                 color = Color.White
                                             )
                                             Text(
-                                                text = pitchcraftGreeting(),
+                                                text = when (currentRoute) {
+                                                    "albums" -> "Your collections"
+                                                    "search" -> "Find a memory"
+                                                    else -> pitchcraftGreeting()
+                                                },
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = Color.White.copy(alpha = 0.68f)
                                             )
@@ -770,8 +776,8 @@ fun MainAppLayout(
                                             )
                                         ) {
                                             Icon(
-                                                imageVector = ImageVector.vectorResource(R.drawable.ic_ms_more_vert),
-                                                contentDescription = "More options",
+                                                imageVector = ImageVector.vectorResource(R.drawable.ic_reference_bell),
+                                                contentDescription = "Gallery activity and options",
                                                 modifier = Modifier.size(IconSizeTokens.L)
                                             )
                                         }
@@ -788,6 +794,17 @@ fun MainAppLayout(
                                         ) {
                                             if (overflowState == "main") {
                                                 DropdownMenuItem(
+                                                    text = { Text("Gallery activity") },
+                                                    leadingIcon = { Icon(ImageVector.vectorResource(R.drawable.ic_reference_bell), contentDescription = null) },
+                                                    onClick = {
+                                                        showOverflowMenu = false
+                                                        overflowState = "main"
+                                                        nestedNavController.navigate("people_processing") {
+                                                            launchSingleTop = true
+                                                        }
+                                                    }
+                                                )
+                                                DropdownMenuItem(
                                                     text = { Text("Settings") },
                                                     leadingIcon = { Icon(ImageVector.vectorResource(R.drawable.ic_ms_settings), contentDescription = null) },
                                                     onClick = {
@@ -798,6 +815,16 @@ fun MainAppLayout(
                                                             launchSingleTop = true
                                                             restoreState = true
                                                         }
+                                                    }
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text("Camera photos") },
+                                                    leadingIcon = { Icon(ImageVector.vectorResource(R.drawable.ic_ms_image), contentDescription = null) },
+                                                    onClick = {
+                                                        viewModel.setFilterIndex(1)
+                                                        showOverflowMenu = false
+                                                        overflowState = "main"
+                                                        nestedNavController.navigate("photos") { launchSingleTop = true }
                                                     }
                                                 )
                                                 DropdownMenuItem(
@@ -842,13 +869,16 @@ fun MainAppLayout(
                                 }
                             }
                             if (currentRoute == "photos") {
-                                MorphingVariableTabRow(
-                                    tabs = listOf("All Photos", "Camera"),
-                                    selectedTabIndex = if (selectedFilter == 1) 1 else 0,
-                                    onTabSelected = { index -> viewModel.setFilterIndex(if (index == 1) 1 else 0) },
-                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
-                                    fontSize = 13.sp,
-                                    lineHeight = 18.sp
+                                ReferenceFilterTabs(
+                                    selectedFilter = if (selectedFilter == 1) 1 else 0,
+                                    onSelectFilter = {
+                                        viewModel.setFilterIndex(it)
+                                        if (it == 0) nestedNavController.navigate("photos") { launchSingleTop = true }
+                                    },
+                                    onAlbumsClick = { nestedNavController.navigate("albums") { launchSingleTop = true } },
+                                    onPeopleClick = { nestedNavController.navigate("all_people") { launchSingleTop = true } },
+                                    onVideosClick = { nestedNavController.navigate("album/Videos") { launchSingleTop = true } },
+                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
                                 )
                             }
                             }
@@ -858,97 +888,66 @@ fun MainAppLayout(
             }
         },
         bottomBar = {
-            val isHiddenAlbum = currentRoute?.startsWith("album/") == true
-            // Pill dock auto-hide on scroll temporarily disabled per user request (preserved for later revival)
-            // val isDockVisible = currentRoute != "settings" && currentRoute != "duplicate_cleaner" && currentRoute != "photo_map" && currentRoute != "all_albums" && currentRoute != "story_viewer" && currentRoute != "places_list" && !isHiddenAlbum && !isSelectionMode && (dockStyle != DockStyle.PILL || isScrollDockVisible)
-            val isDockVisible = currentRoute != "settings" && currentRoute != "duplicate_cleaner" && currentRoute != "photo_map" && currentRoute != "all_albums" && currentRoute != "story_viewer" && currentRoute != "places_list" && !isHiddenAlbum && !isSelectionMode
+            val isHiddenAlbum = currentRoute?.startsWith("album/") == true && albumNameArg != "Favorites"
+            val isDockVisible = currentRoute != "settings" &&
+                currentRoute != "duplicate_cleaner" &&
+                currentRoute != "photo_map" &&
+                currentRoute != "all_albums" &&
+                currentRoute != "story_viewer" &&
+                currentRoute != "places_list" &&
+                currentRoute != "people_processing" &&
+                !isHiddenAlbum && !isSelectionMode
             AnimatedVisibility(
                 visible = isDockVisible,
                 enter = slideInVertically(initialOffsetY = { it }),
                 exit = slideOutVertically(targetOffsetY = { it })
             ) {
-                if (dockStyle == DockStyle.PILL) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(bottom = 6.dp),
-                        contentAlignment = Alignment.BottomCenter
-                    ) {
-                        FloatingNavigationPill(
-                            currentRoute = currentRoute,
-                            onNavigateToPhotos = {
-                                nestedNavController.navigate("photos") {
-                                    popUpTo("photos") { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            onNavigateToAlbums = {
-                                nestedNavController.navigate("albums") {
-                                    popUpTo("photos") { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            onNavigateToSearch = {
-                                nestedNavController.navigate("search") {
-                                    popUpTo("photos") { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(bottom = 7.dp),
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    FloatingNavigationPill(
+                        currentRoute = if (albumNameArg == "Favorites") "album/Favorites" else currentRoute,
+                        onNavigateToPhotos = {
+                            nestedNavController.navigate("photos") {
+                                popUpTo("photos") { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
                             }
-                        )
-                    }
-                } else {
-                    androidx.compose.material3.Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .pointerInput(Unit) {},
-                        color = MaterialTheme.colorScheme.surfaceContainer,
-                        tonalElevation = 0.dp
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .navigationBarsPadding()
-                                .height(50.dp)
-                                .padding(horizontal = 6.dp),
-                            horizontalArrangement = Arrangement.SpaceAround,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            DockItem(
-                                icon = { Icon(if (currentRoute == "photos") ImageVector.vectorResource(R.drawable.ic_ms_image) else ImageVector.vectorResource(R.drawable.ic_ms_image), contentDescription = "Photos", modifier = Modifier.size(24.dp)) },
-                                label = "Photos",
-                                isSelected = currentRoute == "photos",
-                                onClick = { nestedNavController.navigate("photos") {
-                                    popUpTo("photos") { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                } }
-                            )
-                            DockItem(
-                                icon = { Icon(if (currentRoute?.startsWith("album") == true || currentRoute == "albums") ImageVector.vectorResource(R.drawable.ic_ms_photo_album) else ImageVector.vectorResource(R.drawable.ic_ms_photo_album), contentDescription = "Albums", modifier = Modifier.size(24.dp)) },
-                                label = "Albums",
-                                isSelected = currentRoute?.startsWith("album") == true || currentRoute == "albums",
-                                onClick = { nestedNavController.navigate("albums") {
-                                    popUpTo("photos") { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                } }
-                            )
-                            DockItem(
-                                icon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_ms_search), contentDescription = "Search", modifier = Modifier.size(24.dp)) },
-                                label = "Search",
-                                isSelected = currentRoute == "search",
-                                onClick = { nestedNavController.navigate("search") {
-                                    popUpTo("photos") { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                } }
-                            )
-                        }
-                    }
+                        },
+                        onNavigateToAlbums = {
+                            nestedNavController.navigate("albums") {
+                                popUpTo("photos") { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        onNavigateToSearch = {
+                            nestedNavController.navigate("search") {
+                                popUpTo("photos") { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        onNavigateToFavorites = {
+                            nestedNavController.navigate("album/Favorites") {
+                                launchSingleTop = true
+                            }
+                        },
+                        onNavigateToPeople = {
+                            nestedNavController.navigate("all_people") {
+                                launchSingleTop = true
+                            }
+                        },
+                        onCentralAction = {
+                            newAlbumName = ""
+                            showCreateAlbumDialog = true
+                        },
+                        hazeState = dockHazeState
+                    )
                 }
             }
         }
@@ -956,6 +955,7 @@ fun MainAppLayout(
         NavHost(
             navController = nestedNavController,
             startDestination = "photos",
+            modifier = Modifier.hazeSource(dockHazeState),
             enterTransition = { getEnterTransition(initialState.destination.route, targetState.destination.route) },
             exitTransition = { getExitTransition(initialState.destination.route, targetState.destination.route) },
             popEnterTransition = { getEnterTransition(initialState.destination.route, targetState.destination.route) },

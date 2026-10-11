@@ -53,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -77,6 +78,7 @@ fun PersonDetailScreen(
     val people by viewModel.people.collectAsState()
     val media by viewModel.personMedia.collectAsState()
     val faces by viewModel.personFaces.collectAsState()
+    val favoriteIds by viewModel.favoriteIds.collectAsState()
     val person = people.firstOrNull { it.clusterId == clusterId }
     val context = LocalContext.current
 
@@ -367,16 +369,42 @@ fun PersonDetailScreen(
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        containerColor = ReferencePalette.Black,
         topBar = {
             TopAppBar(
-                title = { Text(person?.name ?: "Person", fontWeight = FontWeight.Bold) },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(11.dp)) {
+                        AsyncImage(
+                            model = person?.coverCropPath?.let { File(it) },
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(ReferencePalette.Espresso)
+                                .border(1.dp, ReferencePalette.Amber, CircleShape)
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                person?.name ?: "Person",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
+                            )
+                            Text(
+                                "Personal memories",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = ReferencePalette.Secondary
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Text("‹", style = MaterialTheme.typography.headlineMedium)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = ReferencePalette.Espresso, titleContentColor = Color.White, navigationIconContentColor = Color.White, actionIconContentColor = Color.White),
                 actions = {
                     Box {
                         IconButton(onClick = { menuExpanded = true }) {
@@ -438,11 +466,14 @@ fun PersonDetailScreen(
         }
     ) { padding ->
         LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 28.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            columns = GridCells.Fixed(2),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Brush.verticalGradient(listOf(ReferencePalette.Espresso, ReferencePalette.Black)))
+                .padding(padding),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp),
+            horizontalArrangement = Arrangement.spacedBy(9.dp),
+            verticalArrangement = Arrangement.spacedBy(9.dp)
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Column(
@@ -452,10 +483,11 @@ fun PersonDetailScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(32.dp),
-                        shadowElevation = 16.dp,
-                        tonalElevation = 3.dp,
-                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        shape = RoundedCornerShape(29.dp),
+                        shadowElevation = 10.dp,
+                        tonalElevation = 0.dp,
+                        color = ReferencePalette.SoftCard,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.22f)),
                         modifier = Modifier.fillMaxWidth().height(310.dp)
                     ) {
                         AsyncImage(
@@ -560,15 +592,15 @@ fun PersonDetailScreen(
             }
 
             gridItems(media, key = { it.id }) { item ->
-                AsyncImage(
-                    model = item.resolvedUri,
-                    contentDescription = item.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(10.dp))
-                        .clickable { onPhotoClick(item.id, null, null) }
+                ReferencePhotoCard(
+                    item = item,
+                    modifier = Modifier.fillMaxWidth().height(206.dp),
+                    overline = if (item.isVideo) "VIDEO" else "PHOTO",
+                    selected = false,
+                    isFavorite = item.id in favoriteIds,
+                    onToggleFavorite = { viewModel.toggleFavorite(item.id) },
+                    onClick = { onPhotoClick(item.id, null, null) },
+                    onLongClick = { viewModel.toggleSelection(item.uri.toString()) }
                 )
             }
 

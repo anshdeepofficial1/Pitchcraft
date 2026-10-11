@@ -1,0 +1,137 @@
+name: Reference UI design check
+
+on:
+  push:
+    branches:
+      - design/reference-ui-rebuild-20261010
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: pitchcraft-reference-ui-redesign
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - name: Install Android SDK 36
+        run: |
+          SDKROOT=/usr/local/lib/android/sdk
+          SDKMANAGER="$(find "$SDKROOT/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
+      - name: Provision existing verified face model
+        run: |
+          mkdir -p app/src/main/assets/models
+          curl -fL --retry 3 --connect-timeout 20 \
+            https://models.ente.com/mobilefacenet_portable_static_b1.onnx \
+            -o app/src/main/assets/models/mobilefacenet_portable_static_b1.onnx
+          echo "0763fc33f54e138476194da95987e133b3e976075a6b1d3e1b2caedb251b1a36  app/src/main/assets/models/mobilefacenet_portable_static_b1.onnx" | sha256sum -c -
+      - name: Compile reference UI
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:assembleDebug --stacktrace
+      - name: Check no destructive Room migration is enabled
+        run: |
+          if grep -R -n "fallbackToDestructiveMigration" app/src/main/java/com/inferno/gallery/data/db; then
+            echo "::error::Destructive database fallback is forbidden"
+            exit 1
+          fi
+      - name: Enable hardware acceleration for Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Fresh install and no-media startup smoke test (Android 15)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: bash .github/scripts/emulator-smoke.sh && bash .github/scripts/reference-ui-gallery-smoke.sh
+      - name: Save emulator screenshot and startup log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pitchcraft-reference-ui-emulator-preview
+          path: |
+            pitchcraft-api-*.png
+            pitchcraft-logcat.txt
+            pitchcraft-gallery-zero-images.png
+            pitchcraft-gallery-with-test-images.png
+            pitchcraft-albums-reference.png
+            pitchcraft-people-scanning-reference.png
+            pitchcraft-search-reference.png
+            pitchcraft-people-reference.png
+            pitchcraft-favorites-reference.png
+            pitchcraft-reference-ui.xml
+            pitchcraft-reference-photos.xml
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Save isolated debug APK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pitchcraft-reference-ui-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: ignore
+          retention-days: 7
+
+  android16-smoke:
+    name: Android 16 UI + permission check
+    needs: build-and-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve exactly the APK tested on Android 15
+        uses: actions/download-artifact@v4
+        with:
+          name: pitchcraft-reference-ui-debug
+          path: app/build/outputs/apk/debug
+      - name: Enable Android emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Fresh install and gallery UX smoke on Android 16
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          emulator-boot-timeout: 900
+          disable-animations: true
+          script: bash .github/scripts/emulator-smoke.sh && bash .github/scripts/reference-ui-gallery-smoke.sh
+      - name: Archive Android 16 gallery screenshots and log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pitchcraft-reference-ui-android16-preview
+          path: |
+            pitchcraft-api-*.png
+            pitchcraft-logcat.txt
+            pitchcraft-gallery-zero-images.png
+            pitchcraft-gallery-with-test-images.png
+            pitchcraft-albums-reference.png
+            pitchcraft-people-scanning-reference.png
+            pitchcraft-search-reference.png
+            pitchcraft-people-reference.png
+            pitchcraft-favorites-reference.png
+          if-no-files-found: ignore
+          retention-days: 7

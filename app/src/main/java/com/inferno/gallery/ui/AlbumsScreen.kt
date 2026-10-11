@@ -18,6 +18,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -192,7 +193,9 @@ fun AlbumsScreen(
         ),
         verticalArrangement = Arrangement.spacedBy(SpacingTokens.L),
         horizontalArrangement = Arrangement.spacedBy(SpacingTokens.M),
-        modifier = modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize().background(
+            Brush.verticalGradient(listOf(ReferencePalette.Espresso, ReferencePalette.Black))
+        )
     ) {
 
         // ── 1. Pinned albums ──
@@ -210,7 +213,10 @@ fun AlbumsScreen(
                 items(
                     items = visiblePinned,
                     key = { "pinned_${it.bucketName}" },
-                    span = { GridItemSpan(4) }
+                    span = { bucket ->
+                        GridItemSpan(if (visiblePinned.size % 2 == 1 &&
+                            bucket.bucketName == visiblePinned.last().bucketName) 12 else 6)
+                    }
                 ) { bucket ->
                     val displayBucketName = when (bucket.bucketName) {
                         "Screenrecordings", "Screenrecords", "ScreenRecord" -> "Screen recordings"
@@ -225,6 +231,8 @@ fun AlbumsScreen(
                             animatedVisibilityScope = animatedVisibilityScope,
                             bucket = bucket.copy(bucketName = displayBucketName),
                             showAlbumSize = showAlbumSize,
+                            wide = visiblePinned.size % 2 == 1 &&
+                                bucket.bucketName == visiblePinned.last().bucketName,
                             onClick = { onAlbumClick(bucket.bucketName) },
                             onLongPress = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -336,108 +344,7 @@ fun AlbumsScreen(
             }
         }
 
-        // ── 2. More albums (Horizontal Carousel) ──
-        if (unpinnedAlbums.isNotEmpty()) {
-            item(key = "header_more", span = { GridItemSpan(maxLineSpan) }) {
-                SectionHeader(
-                    title = "More albums",
-                    count = unpinnedAlbums.size,
-                    isExpanded = moreExpanded,
-                    onToggle = { viewModel.toggleAlbumsExpandedMore() },
-                    onSeeAll = onNavigateToAllAlbums
-                )
-            }
-
-            item(key = "content_more", span = { GridItemSpan(maxLineSpan) }) {
-                AnimatedVisibility(
-                    visible = moreExpanded,
-                    enter = expandVertically(animationSpec = MotionTokens.snappySpring()) + fadeIn(animationSpec = MotionTokens.snappySpring()),
-                    exit = shrinkVertically(animationSpec = MotionTokens.snappySpring()) + fadeOut(animationSpec = MotionTokens.snappySpring())
-                ) {
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(horizontal = SpacingTokens.XS),
-                        horizontalArrangement = Arrangement.spacedBy(SpacingTokens.M)
-                    ) {
-                        items(
-                            items = unpinnedAlbums,
-                            key = { "folder_${it.bucketName}" }
-                        ) { bucket ->
-                            Box(modifier = Modifier.width(116.dp)) {
-                                var showPinMenu by remember { mutableStateOf(false) }
-                                AlbumCard(
-                                    sharedTransitionScope = sharedTransitionScope,
-                                    animatedVisibilityScope = animatedVisibilityScope,
-                                    bucket = bucket,
-                                    showAlbumSize = showAlbumSize,
-                                    onClick = { onAlbumClick(bucket.bucketName) },
-                                    onLongPress = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        showPinMenu = true
-                                    }
-                                )
-                                DropdownMenu(
-                                    expanded = showPinMenu,
-                                    onDismissRequest = { showPinMenu = false },
-                                    shape = ShapeExtraLarge,
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                                ) {
-                                    val isPinned = bucket.bucketName in userPinnedNames
-                                    DropdownMenuItem(
-                                        text = { Text(if (isPinned) "Unpin Album" else "Pin Album", style = MaterialTheme.typography.bodyMedium) },
-                                        leadingIcon = {
-                                            Icon(
-                                                imageVector = ImageVector.vectorResource(if (isPinned) R.drawable.ic_ms_folder_off else R.drawable.ic_ms_folder),
-                                                contentDescription = null,
-                                                modifier = Modifier.size(IconSizeTokens.M)
-                                            )
-                                        },
-                                        onClick = {
-                                            showPinMenu = false
-                                            viewModel.togglePinAlbum(bucket.bucketName)
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Change Cover", style = MaterialTheme.typography.bodyMedium) },
-                                        leadingIcon = {
-                                            Icon(
-                                                imageVector = ImageVector.vectorResource(R.drawable.ic_ms_image),
-                                                contentDescription = null,
-                                                modifier = Modifier.size(IconSizeTokens.M)
-                                            )
-                                        },
-                                        onClick = {
-                                            showPinMenu = false
-                                            onChangeCover(bucket.bucketName)
-                                        }
-                                    )
-                                    if (customCovers.containsKey(bucket.bucketName)) {
-                                        DropdownMenuItem(
-                                            text = { Text("Reset to Default Cover", style = MaterialTheme.typography.bodyMedium) },
-                                            leadingIcon = {
-                                                Icon(
-                                                    imageVector = ImageVector.vectorResource(R.drawable.ic_ms_delete),
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(IconSizeTokens.M)
-                                                )
-                                            },
-                                            onClick = {
-                                                showPinMenu = false
-                                                onDeleteCover(bucket.bucketName)
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-
-
-        // ── 3. People ──
+        // ── 2. People ──
         item(key = "header_people", span = { GridItemSpan(maxLineSpan) }) {
             SectionHeader(
                 title = "People",
@@ -454,128 +361,280 @@ fun AlbumsScreen(
                 enter = expandVertically(animationSpec = MotionTokens.snappySpring()) + fadeIn(animationSpec = MotionTokens.snappySpring()),
                 exit = shrinkVertically(animationSpec = MotionTokens.snappySpring()) + fadeOut(animationSpec = MotionTokens.snappySpring())
             ) {
-                if (people.isEmpty() && !faceProgress.isIndexing) {
-                    Surface(
-                        shape = ShapeLargeIncreased,
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { viewModel.startFaceIndexing() }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(18.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    if (people.isEmpty() && !faceProgress.isIndexing) {
+                        Surface(
+                            onClick = viewModel::startFaceIndexing,
+                            shape = RoundedCornerShape(29.dp),
+                            color = ReferencePalette.SoftCard,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, ReferencePalette.Outline),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primary
-                            ) {
-                                Icon(
-                                    imageVector = ImageVector.vectorResource(R.drawable.ic_ms_person),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.padding(12.dp).size(24.dp)
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    "Find people on this device",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    "Local face detection and grouping. Originals never leave your phone.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Text(
-                                "Start",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                } else {
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(horizontal = SpacingTokens.XS),
-                        horizontalArrangement = Arrangement.spacedBy(SpacingTokens.M)
-                    ) {
-                        if (faceProgress.isIndexing) {
-                            item(key = "people_scan_progress") {
-                                Surface(
-                                    onClick = onPeopleProgressClick,
-                                    shape = ShapeLargeIncreased,
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    shadowElevation = 4.dp,
-                                    modifier = Modifier.width(190.dp)
-                                ) {
-                                    Column(Modifier.padding(16.dp)) {
-                                        Text(
-                                            faceProgress.stage.ifBlank { "Scanning people" },
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Spacer(Modifier.height(7.dp))
-                                        Text(
-                                            "${faceProgress.progress} / ${faceProgress.total} images",
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
-                                        Text(
-                                            "${faceProgress.facesFound} faces found",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        faceProgress.currentImageName?.let {
-                                            Spacer(Modifier.height(6.dp))
-                                            Text(
-                                                it,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        items(people, key = { "person_${it.clusterId}" }) { person ->
-                            Column(
+                            Row(
                                 modifier = Modifier
-                                    .width(112.dp)
-                                    .clickable { onPersonClick(person.clusterId.toString()) },
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 18.dp, vertical = 20.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(14.dp)
                             ) {
-                                Surface(
-                                    shape = ShapeLargeIncreased,
-                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .aspectRatio(0.92f)
+                                Box(
+                                    Modifier
+                                        .size(58.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            Brush.linearGradient(
+                                                listOf(ReferencePalette.AmberBright, ReferencePalette.Amber)
+                                            )
+                                        ),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    AsyncImage(
-                                        model = person.coverCropPath?.let { java.io.File(it) },
-                                        contentDescription = person.name ?: "Person",
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize()
+                                    Icon(
+                                        imageVector = ImageVector.vectorResource(R.drawable.ic_reference_people),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(27.dp),
+                                        tint = Color.White
                                     )
                                 }
-                                Spacer(Modifier.height(7.dp))
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                                ) {
+                                    Text(
+                                        "Find familiar faces",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = ReferencePalette.Cream
+                                    )
+                                    Text(
+                                        "Create private collections of people in your photos.",
+                                        color = ReferencePalette.Secondary,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
                                 Text(
-                                    person.name ?: "Person",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    "Start",
+                                    color = ReferencePalette.AmberBright,
+                                    style = MaterialTheme.typography.labelLarge
                                 )
-                                Text(
-                                    "${person.faceCount} faces",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        }
+                    }
+                    if (faceProgress.isIndexing) {
+                        // Never put this in a fixed-width LazyRow item: it must not
+                        // collapse or leave a blank right-hand strip after Start.
+                        Surface(
+                            onClick = onPeopleProgressClick,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(29.dp),
+                            color = ReferencePalette.SoftCard,
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp, ReferencePalette.Outline
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(18.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                                    ) {
+                                        Text(
+                                            "Organizing your people",
+                                            color = ReferencePalette.Cream,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            faceProgress.stage.ifBlank { "Finding faces on this device" },
+                                            color = ReferencePalette.Secondary,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Text(
+                                        if (faceProgress.total > 0)
+                                            "${(faceProgress.progress * 100 / faceProgress.total).coerceIn(0,100)}%"
+                                        else "Working",
+                                        color = ReferencePalette.AmberBright,
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                }
+                                androidx.compose.material3.LinearProgressIndicator(
+                                    progress = {
+                                        if (faceProgress.total > 0)
+                                            (faceProgress.progress.toFloat() / faceProgress.total).coerceIn(0f, 1f)
+                                        else 0f
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(6.dp)
+                                        .clip(CircleShape),
+                                    color = ReferencePalette.AmberBright,
+                                    trackColor = ReferencePalette.Espresso
+                                )
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        "${faceProgress.progress} / ${faceProgress.total} photos",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = ReferencePalette.Secondary
+                                    )
+                                    Text(
+                                        "${faceProgress.facesFound} faces found  •  View details",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = ReferencePalette.AmberBright
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    if (people.isNotEmpty()) {
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(horizontal = SpacingTokens.XS),
+                            horizontalArrangement = Arrangement.spacedBy(17.dp)
+                        ) {
+                            items(people, key = { "person_${it.clusterId}" }) { person ->
+                                Column(
+                                    modifier = Modifier
+                                        .width(96.dp)
+                                        .clickable { onPersonClick(person.clusterId.toString()) },
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(91.dp)
+                                            .clip(CircleShape)
+                                            .background(ReferencePalette.Espresso)
+                                            .border(
+                                                1.5.dp,
+                                                ReferencePalette.Amber.copy(alpha = 0.70f),
+                                                CircleShape
+                                            )
+                                    ) {
+                                        AsyncImage(
+                                            model = person.coverCropPath?.let { java.io.File(it) },
+                                            contentDescription = person.name ?: "Person",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .padding(3.dp)
+                                                .clip(CircleShape)
+                                        )
+                                    }
+                                    Text(
+                                        person.name?.takeIf { it.isNotBlank() } ?: "Person",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = ReferencePalette.Cream,
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        "${person.faceCount} photos",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = ReferencePalette.Secondary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+        // ── 3. More albums (Horizontal Carousel) ──
+        if (unpinnedAlbums.isNotEmpty()) {
+            item(key = "header_more", span = { GridItemSpan(maxLineSpan) }) {
+                SectionHeader(
+                    title = "More albums",
+                    count = unpinnedAlbums.size,
+                    isExpanded = moreExpanded,
+                    onToggle = { viewModel.toggleAlbumsExpandedMore() },
+                    onSeeAll = onNavigateToAllAlbums
+                )
+            }
+
+            // Use the same full two-column grid as pinned albums.
+            // A narrow horizontal strip left an ugly empty side on small libraries.
+            if (moreExpanded) {
+                items(
+                    items = unpinnedAlbums,
+                    key = { "folder_${it.bucketName}" },
+                    span = { bucket ->
+                        GridItemSpan(if (unpinnedAlbums.size % 2 == 1 &&
+                            bucket.bucketName == unpinnedAlbums.last().bucketName) 12 else 6)
+                    }
+                ) { bucket ->
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        var showPinMenu by remember { mutableStateOf(false) }
+                        AlbumCard(
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope,
+                            bucket = bucket,
+                            showAlbumSize = showAlbumSize,
+                            wide = unpinnedAlbums.size % 2 == 1 &&
+                                bucket.bucketName == unpinnedAlbums.last().bucketName,
+                            onClick = { onAlbumClick(bucket.bucketName) },
+                            onLongPress = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                showPinMenu = true
+                            }
+                        )
+                        DropdownMenu(
+                            expanded = showPinMenu,
+                            onDismissRequest = { showPinMenu = false },
+                            shape = ShapeExtraLarge,
+                            containerColor = ReferencePalette.SoftCard
+                        ) {
+                            val isPinned = bucket.bucketName in userPinnedNames
+                            DropdownMenuItem(
+                                text = { Text(if (isPinned) "Unpin Album" else "Pin Album") },
+                                leadingIcon = {
+                                    Icon(ImageVector.vectorResource(
+                                        if (isPinned) R.drawable.ic_ms_folder_off else R.drawable.ic_ms_folder
+                                    ), contentDescription = null)
+                                },
+                                onClick = {
+                                    showPinMenu = false
+                                    viewModel.togglePinAlbum(bucket.bucketName)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Change Cover") },
+                                leadingIcon = {
+                                    Icon(ImageVector.vectorResource(R.drawable.ic_ms_image), contentDescription = null)
+                                },
+                                onClick = {
+                                    showPinMenu = false
+                                    onChangeCover(bucket.bucketName)
+                                }
+                            )
+                            if (customCovers.containsKey(bucket.bucketName)) {
+                                DropdownMenuItem(
+                                    text = { Text("Reset to Default Cover") },
+                                    leadingIcon = {
+                                        Icon(ImageVector.vectorResource(R.drawable.ic_ms_delete), contentDescription = null)
+                                    },
+                                    onClick = {
+                                        showPinMenu = false
+                                        onDeleteCover(bucket.bucketName)
+                                    }
                                 )
                             }
                         }
@@ -583,6 +642,7 @@ fun AlbumsScreen(
                 }
             }
         }
+
 
 
         // ── 4. Places Carousel ──
@@ -928,26 +988,25 @@ fun AlbumCard(
     bucket: AlbumBucket,
     modifier: Modifier = Modifier,
     showAlbumSize: Boolean = false,
+    wide: Boolean = false,
     onClick: () -> Unit = {},
     onLongPress: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
-
     val request = remember<ImageRequest>(bucket.coverUri) {
         ImageRequest.Builder(context)
             .data(bucket.coverUri)
-            .size(Size(360, 360))
-            .precision(Precision.EXACT)
+            .size(Size(480, 640))
+            .precision(Precision.INEXACT)
             .crossfade(false)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
             .build()
     }
-
     val sharedBoundsModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
         with(sharedTransitionScope) {
             Modifier.sharedBounds(
-                sharedContentState = rememberSharedContentState(key = "album_${bucket.bucketName}"),
+                sharedContentState = rememberSharedContentState(key = "album_" + bucket.bucketName),
                 animatedVisibilityScope = animatedVisibilityScope,
                 enter = fadeIn(animationSpec = MotionTokens.snappySpring()),
                 exit = fadeOut(animationSpec = MotionTokens.snappySpring()),
@@ -956,127 +1015,103 @@ fun AlbumCard(
                 boundsTransform = { _, _ -> MotionTokens.sharedElementSpring() }
             )
         }
-    } else {
-        Modifier
-    }
+    } else Modifier
 
-    Column(
+    val cardShape = RoundedCornerShape(28.dp)
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .pressScale(pressedScale = 0.96f)
-            .clip(ShapeLarge)
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongPress
-            ),
-        horizontalAlignment = Alignment.Start
+            .aspectRatio(if (wide) 1.7f else 0.83f)
+            .then(sharedBoundsModifier)
+            .pressScale(pressedScale = 0.97f)
+            .clip(cardShape)
+            .background(ReferencePalette.SoftCard)
+            .border(0.8.dp, Color.White.copy(alpha = 0.23f), cardShape)
+            .combinedClickable(onClick = onClick, onLongClick = onLongPress)
     ) {
-        // Outer Card Container (M3 Expressive Carded Surface - Filled Tonal)
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .then(sharedBoundsModifier),
-            shape = ShapeLarge,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shadowElevation = 0.dp
-        ) {
+        if (bucket.coverUris.size == 4) {
+            CollageCover(uris = bucket.coverUris, modifier = Modifier.fillMaxSize())
+        } else if (bucket.coverUri == Uri.EMPTY) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(10.dp)
+                    .background(
+                        Brush.linearGradient(
+                            listOf(Color(0xFF5A3114), Color(0xFF1C1511), Color(0xFF100F0D))
+                        )
+                    ),
+                contentAlignment = Alignment.Center
             ) {
-                if (bucket.coverUris.size == 4) {
-                    CollageCover(
-                        uris = bucket.coverUris,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else if (bucket.coverUri == Uri.EMPTY) {
-                    val icon = if (bucket.bucketName == "Favorites") {
-                        ImageVector.vectorResource(R.drawable.ic_ms_favorite)
-                    } else {
-                        ImageVector.vectorResource(R.drawable.ic_ms_photo_album)
-                    }
-                    Surface(
-                        shape = ShapeLarge,
-                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Surface(
-                                shape = ShapeFull,
-                                color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.9f),
-                                modifier = Modifier.size(52.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = icon,
-                                        contentDescription = bucket.bucketName,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(IconSizeTokens.L)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    AsyncImage(
-                        model = request,
-                        contentDescription = bucket.bucketName,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(ShapeLarge)
-                    )
-                }
+                Icon(
+                    imageVector = ImageVector.vectorResource(
+                        if (bucket.bucketName == "Favorites") R.drawable.ic_ms_favorite
+                        else R.drawable.ic_ms_photo_album
+                    ),
+                    contentDescription = null,
+                    tint = ReferencePalette.AmberBright,
+                    modifier = Modifier.size(52.dp)
+                )
             }
+        } else {
+            AsyncImage(
+                model = request,
+                contentDescription = bucket.bucketName,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
         }
-
-        Spacer(modifier = Modifier.height(SpacingTokens.S))
-
-        // Title
-        Text(
-            text = bucket.bucketName,
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 4.dp)
+        Box(
+            Modifier.fillMaxSize().background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color.Black.copy(alpha = 0.12f),
+                        Color.Transparent,
+                        Color.Black.copy(alpha = 0.84f)
+                    )
+                )
+            )
         )
-
-        // Metadata: Count and Size
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(12.dp)
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(Color.Black.copy(alpha = 0.26f))
+                .border(0.7.dp, Color.White.copy(alpha = 0.23f), CircleShape),
+            contentAlignment = Alignment.Center
         ) {
-            val countText = remember(bucket.itemCount) {
-                val formatted = NumberFormat.getInstance(Locale.US).format(bucket.itemCount)
-                if (bucket.itemCount == 1) "1 item" else "$formatted items"
-            }
-
+            Icon(
+                ImageVector.vectorResource(R.drawable.ic_ms_photo_album),
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(17.dp)
+            )
+        }
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(horizontal = 15.dp, vertical = 15.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
             Text(
-                text = countText,
-                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Normal),
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                text = bucket.bucketName,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = Color.White,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            val count = NumberFormat.getInstance(Locale.US).format(bucket.itemCount)
+            val sizeText = if (showAlbumSize && bucket.totalSizeBytes > 0L) {
+                "  •  " + Formatter.formatShortFileSize(context, bucket.totalSizeBytes)
+            } else ""
+            Text(
+                text = count + " " + (if (bucket.itemCount == 1) "item" else "items") + sizeText,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White.copy(alpha = 0.78f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-
-            if (showAlbumSize && bucket.totalSizeBytes > 0) {
-                Text(
-                    text = "•",
-                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                )
-                Text(
-                    text = Formatter.formatShortFileSize(context, bucket.totalSizeBytes),
-                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Normal),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
         }
     }
 }

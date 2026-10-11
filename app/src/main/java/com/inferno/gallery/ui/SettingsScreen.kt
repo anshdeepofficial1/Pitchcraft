@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -1492,6 +1493,45 @@ fun SettingsScreen(
                         }
 
                         "Library & Scanning" -> {
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                                SettingsGroupCard(
+                                    title = "Advanced file operations",
+                                    items = listOf({
+                                        Surface(
+                                            onClick = {
+                                                val intent = android.content.Intent(
+                                                    android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                                    android.net.Uri.parse("package:" + context.packageName)
+                                                )
+                                                runCatching { context.startActivity(intent) }.onFailure {
+                                                    context.startActivity(
+                                                        android.content.Intent(
+                                                            android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION
+                                                        )
+                                                    )
+                                                }
+                                            },
+                                            color = ReferencePalette.SoftCard,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Column(Modifier.fillMaxWidth().padding(17.dp)) {
+                                                Text(
+                                                    "Manage all-files access",
+                                                    color = ReferencePalette.Cream,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    style = MaterialTheme.typography.titleSmall
+                                                )
+                                                Spacer(Modifier.height(5.dp))
+                                                Text(
+                                                    "Optional. Enable only when folder-level tools need unrestricted file management. Not required to browse photos.",
+                                                    color = ReferencePalette.Secondary,
+                                                    style = MaterialTheme.typography.bodySmall
+                                                )
+                                            }
+                                        }
+                                    })
+                                )
+                            }
                             val allFolders by galleryViewModel.allBucketNames.collectAsState()
                             val excludedFolders by galleryViewModel.excludedFolders.collectAsState()
                             val scopeMode by galleryViewModel.libraryScopeMode.collectAsState()
@@ -1642,7 +1682,7 @@ fun SettingsScreen(
                                             contentAlignment = Alignment.Center
                                         ) {
                                             androidx.compose.foundation.Image(
-                                                painter = painterResource(id = R.drawable.pitchcraft_logo_foreground),
+                                                painter = painterResource(id = R.drawable.pitchcraft_mark),
                                                 contentDescription = "Pitchcraft Logo",
                                                 modifier = Modifier
                                                     .size(68.dp)
@@ -1922,45 +1962,36 @@ fun SettingsGroupCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .padding(top = 10.dp, bottom = 2.dp)
+            .padding(top = 13.dp, bottom = 4.dp)
     ) {
         if (title != null) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.titleSmall,
+                color = ReferencePalette.Cream,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                modifier = Modifier.padding(start = 5.dp, bottom = 11.dp)
             )
         }
-
-        Column(
+        Surface(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+            shape = RoundedCornerShape(27.dp),
+            color = ReferencePalette.SoftCard.copy(alpha = 0.94f),
+            border = BorderStroke(0.8.dp, ReferencePalette.Outline),
+            shadowElevation = 0.dp
         ) {
-            items.forEachIndexed { index, itemContent ->
-                val shape = when {
-                    items.size == 1 -> ShapeLarge
-                    index == 0 -> RoundedCornerShape(
-                        topStart = 16.dp,
-                        topEnd = 16.dp,
-                        bottomStart = 4.dp,
-                        bottomEnd = 4.dp
-                    )
-                    index == items.size - 1 -> RoundedCornerShape(
-                        topStart = 4.dp,
-                        topEnd = 4.dp,
-                        bottomStart = 16.dp,
-                        bottomEnd = 16.dp
-                    )
-                    else -> RoundedCornerShape(4.dp)
-                }
-                Surface(
-                    shape = shape,
-                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    itemContent()
+            Column(Modifier.fillMaxWidth()) {
+                items.forEachIndexed { index, itemContent ->
+                    Box(Modifier.fillMaxWidth()) { itemContent() }
+                    if (index < items.lastIndex) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 18.dp)
+                                .height(0.8.dp)
+                                .background(Color.White.copy(alpha = 0.09f))
+                        )
+                    }
                 }
             }
         }

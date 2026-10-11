@@ -962,12 +962,12 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
         try {
             ViewMode.valueOf(it)
         } catch (e: Exception) {
-            ViewMode.Immersive
+            ViewMode.Grouped
         }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = ViewMode.Immersive
+        initialValue = ViewMode.Grouped
     )
 
     val dockStyle: StateFlow<DockStyle> = settingsRepository.dockStyleFlow.map {
