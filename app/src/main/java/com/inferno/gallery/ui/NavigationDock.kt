@@ -44,6 +44,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -81,7 +83,8 @@ fun FloatingNavigationPill(
     modifier: Modifier = Modifier,
     onNavigateToFavorites: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
-    onCentralAction: () -> Unit = {}
+    onCentralAction: () -> Unit = {},
+    hazeState: HazeState? = null
 ) {
     Box(
         modifier = modifier
@@ -89,6 +92,10 @@ fun FloatingNavigationPill(
             .height(62.dp)
             .shadow(18.dp, ShapeFull, ambientColor = Color(0xAAAD5A1E), spotColor = Color(0xBB6A3113))
             .clip(ShapeFull)
+            .then(if (hazeState != null) Modifier.hazeEffect(state = hazeState) {
+                // Blur the real gallery pixels visible beneath the dock.
+                blurRadius = 28.dp
+            } else Modifier)
             .background(
                 Brush.horizontalGradient(
                     listOf(
