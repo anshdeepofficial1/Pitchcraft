@@ -127,6 +127,10 @@ dependencies {
     // ── Material 3 Expressive (explicit version ≥ 1.4.0, overrides BOM) ──
     implementation(libs.androidx.compose.material3)
 
+    // Haze samples the image behind the frosted caption and applies genuine Gaussian blur.
+    // v1.7.0 is compiled with Kotlin 2.2.20, matching this project.
+    implementation("dev.chrisbanes.haze:haze:1.7.0")
+
     // ── Compose Animation (SharedTransitionScope, spring physics) ──
     implementation(libs.androidx.compose.animation)
 
