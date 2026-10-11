@@ -8,6 +8,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.rememberHazeState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -170,7 +173,8 @@ internal fun ReferenceGallerySurface(
         (pagedMedia[it] as? GalleryListItem.Item)?.galleryItem
     }
 
-    val actualColumnCount = if (viewMode == ViewMode.Immersive) 1 else gridCellsCount.coerceIn(2, 4)
+    // Full-width editorial media cards match the supplied cinematic reference.
+    val actualColumnCount = 1
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(actualColumnCount),
@@ -192,7 +196,7 @@ internal fun ReferenceGallerySurface(
             end = 16.dp,
             bottom = contentPadding.calculateBottomPadding() + 18.dp
         ),
-        verticalArrangement = Arrangement.spacedBy(15.dp)
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         if (first != null) {
             item(key = "reference_cover", span = { GridItemSpan(maxLineSpan) }) {
@@ -233,7 +237,10 @@ internal fun ReferenceGallerySurface(
             }
         }
 
-        items(count = (pagedMedia.itemCount - firstMediaIndices.size).coerceAtLeast(0)) { visibleIndex ->
+        items(
+            count = (pagedMedia.itemCount - firstMediaIndices.size).coerceAtLeast(0),
+            span = { GridItemSpan(maxLineSpan) }
+        ) { visibleIndex ->
             // Exclude the two hero records without emitting invisible grid cells.
             var mediaIndex = visibleIndex
             firstMediaIndices.forEach { heroIndex ->
@@ -246,7 +253,7 @@ internal fun ReferenceGallerySurface(
                         ReferencePhotoCard(
                             item = photo,
                             modifier = Modifier.fillMaxWidth().height(
-                                if (actualColumnCount == 1) 225.dp else 180.dp
+                                252.dp
                             ),
                             onClick = { onMediaClick(photo) },
                             onLongClick = { onMediaLongClick(photo) },
@@ -291,6 +298,7 @@ internal fun ReferencePhotoCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
+    val hazeState = rememberHazeState()
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(29.dp))
@@ -306,7 +314,7 @@ internal fun ReferencePhotoCard(
             model = item.resolvedUri,
             contentDescription = item.name,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize().hazeSource(hazeState)
         )
         Box(
             modifier = Modifier
@@ -320,7 +328,18 @@ internal fun ReferencePhotoCard(
                 )
         )
         Column(
-            modifier = Modifier.align(Alignment.BottomStart).padding(horizontal = 18.dp, vertical = 17.dp),
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 12.dp)
+                .clip(RoundedCornerShape(21.dp))
+                .hazeEffect(state = hazeState) {
+                    // Actual photographed pixels behind this caption are blurred.
+                    blurRadius = 23.dp
+                }
+                .background(Brush.verticalGradient(listOf(Color(0x99170F0B), Color(0xC019130F))))
+                .border(0.7.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(21.dp))
+                .padding(horizontal = 15.dp, vertical = 11.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
@@ -387,7 +406,11 @@ internal fun ReferencePhotoCard(
 }
 
 @Composable
-internal fun ReferenceEmptyGallery(modifier: Modifier = Modifier, subtitle: String = "Your photos and videos will appear here as soon as they are available.") {
+internal fun ReferenceEmptyGallery(
+    modifier: Modifier = Modifier,
+    title: String = "Your story starts here",
+    subtitle: String = "Your photos and videos will appear here as soon as they are available."
+) {
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -416,7 +439,7 @@ internal fun ReferenceEmptyGallery(modifier: Modifier = Modifier, subtitle: Stri
             }
             Spacer(Modifier.height(5.dp))
             Text(
-                "Your story starts here",
+                title,
                 color = ReferencePalette.Cream,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.SemiBold,
